@@ -98,8 +98,7 @@ void activateBionx(){
      
     txBuf[1]= 0x00;
     txBuf[1]= 0xFC;
-    CAN.sendMsgBuf(0x10, 0, 0x2, txBuf);     
-    
+    CAN.sendMsgBuf(0x10, 0, 0x2, txBuf);
 }
 
 

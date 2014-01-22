@@ -113,7 +113,6 @@ void peformBluetoothReceive() {
       case SMOOTHING_MIN_BYTE:
       
         SMOOTHING_MIN = value;
-        performBluetoothSync();
         
         Serial.print("smoothingMin: ");
         Serial.println(SMOOTHING_MIN);
@@ -122,7 +121,6 @@ void peformBluetoothReceive() {
       case SMOOTHING_MAX_BYTE:
       
         SMOOTHING_MAX = value;
-        performBluetoothSync();
         
         Serial.print("smoothingMax: ");
         Serial.println(SMOOTHING_MAX);
@@ -132,7 +130,6 @@ void peformBluetoothReceive() {
       
         MAX_OUTPUT = value;
         recalculateStrainDampingMultiplier();
-        performBluetoothSync();
         
         Serial.print("maxOutput: ");
         Serial.println(MAX_OUTPUT);
@@ -142,7 +139,6 @@ void peformBluetoothReceive() {
       
         MAX_INPUT = value;
         recalculateStrainDampingMultiplier();
-        performBluetoothSync();
         
         Serial.print("maxInput: ");
         Serial.println(MAX_INPUT);
@@ -153,7 +149,6 @@ void peformBluetoothReceive() {
         //STRAIN_DAMPING_CURVE = ((float)value / (float)UINT16_MAX) * 2;
         STRAIN_DAMPING_CURVE = value;
         recalculateStrainDampingMultiplier();
-        performBluetoothSync();
         
         Serial.print("strainDampingCurve: ");
         Serial.println(STRAIN_DAMPING_CURVE);
@@ -162,7 +157,6 @@ void peformBluetoothReceive() {
       case STROKE_TIMEOUT_CYCLES_BYTE:
       
         STROKE_TIMEOUT_CYCLES = value;
-        performBluetoothSync();
         
         Serial.print("strokeTimeoutCycles: ");
         Serial.println(STROKE_TIMEOUT_CYCLES);
@@ -171,7 +165,6 @@ void peformBluetoothReceive() {
       case MAX_EFFORT_BYTE:
       
         MAX_EFFORT = value;
-        performBluetoothSync();
         
         Serial.print("maxEffort: ");
         Serial.println(MAX_EFFORT);
@@ -188,6 +181,14 @@ void peformBluetoothReceive() {
         
         Serial.print("enableRiderEffortUpdates: ");
         Serial.println(enableRiderEffortUpdates);
+        break;
+        
+      case TORQUE_MULTIPLIER_BYTE:
+      
+        torqueMultiplier = value;
+        
+        Serial.print("torqueMultiplier: ");
+        Serial.println(torqueMultiplier);
         break;
         
       default:
@@ -243,6 +244,10 @@ void performBluetoothSync() {
   BLEMini.write(ENABLE_RIDER_EFFORT_UPDATES_BYTE);
   BLEMini.write(enableRiderEffortUpdates);
   BLEMini.write(enableRiderEffortUpdates >> 8);
+  
+  BLEMini.write(TORQUE_MULTIPLIER_BYTE);
+  BLEMini.write(torqueMultiplier);
+  BLEMini.write(torqueMultiplier >> 8);
 }
 
 

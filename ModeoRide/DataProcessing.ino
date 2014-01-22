@@ -185,8 +185,10 @@ void handleStrainMessage(byte newStrain) {
   
   riderEffort = smooth(currentStrain, riderEffort, filterAmount);
   
-  int constrainedPeakStrain = round(constrain(riderEffort, 0, MAX_EFFORT));
-  byte torque = map(constrainedPeakStrain, 0, MAX_EFFORT, 0, 64);
+  float constrainedEffort = round(constrain(riderEffort, 0, MAX_EFFORT));
+  float multiplier = ((float)torqueMultiplier / (float)UINT16_MAX) * 2;
+  constrainedEffort *= multiplier;
+  byte torque = map(constrainedEffort, 0, MAX_EFFORT, 0, 64);
   
   Temp_Var_For_Fwd_Twrk_Msg = torque;
  // hasTorqueMessage = true;  //  NOW ALTERNATELY HANDLED BY MEDIUM MESSAGE RX TIMER 

@@ -154,6 +154,7 @@ uint16_t MAX_INPUT = 150;
 uint16_t STRAIN_DAMPING_CURVE = 117963; //Must be > 0 and < 2. Smaller number means steeper curve and more aggressive damping.
 uint16_t STROKE_TIMEOUT_CYCLES = 40;
 uint16_t MAX_EFFORT = 100;
+uint16_t torqueMultiplier = 0;
 
 bool enableRiderEffortUpdates = false;
 //These aren't used yet, but will need to be.

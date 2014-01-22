@@ -28,7 +28,7 @@
 #define SMOOTHING_DIVISOR 65535
 //   END Constants for configuration of the strain characterization algorithm
 
-//Constants for BLE identifiers
+//Constants for BLE properties
 #define NUM_AVERAGED_STROKES_BYTE 0x1A
 #define MAX_STORED_STROKES_BYTE 0x1B
 #define MAX_INPUT_BYTE 0x1C
@@ -39,10 +39,12 @@
 #define SMOOTHING_MAX_BYTE 0x2B
 #define MAX_EFFORT_BYTE 0x2C
 #define ENABLE_RIDER_EFFORT_UPDATES_BYTE 0x2D
+#define TORQUE_MULTIPLIER_BYTE 0x2E
 
-//Sensor values all start with 0
+//Values sent from sensors to iOS
 #define RIDER_EFFORT_BYTE 0x0A
 
+//Used to sync iOS to Arduino
 #define SEND_PARAMS_BYTE 0xEE
 
 

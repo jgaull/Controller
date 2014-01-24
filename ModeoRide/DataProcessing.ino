@@ -185,9 +185,9 @@ void handleStrainMessage(byte newStrain) {
   
   riderEffort = smooth(currentStrain, riderEffort, filterAmount);
   
-  float constrainedEffort = round(constrain(riderEffort, 0, MAX_EFFORT));
   float multiplier = ((float)torqueMultiplier / (float)UINT16_MAX) * 2;
-  constrainedEffort *= multiplier;
+  float multipliedEffort = multiplier * riderEffort;
+  float constrainedEffort = round(constrain(multipliedEffort, 0, MAX_EFFORT));
   byte torque = map(constrainedEffort, 0, MAX_EFFORT, 0, 64);
   
   Temp_Var_For_Fwd_Twrk_Msg = torque;
@@ -229,7 +229,7 @@ void handleStrainMessage(byte newStrain) {
     return 0;
   }
 
-}*/
+}
 
 byte filter(byte newVal, byte oldVal, byte number){
   if(newVal>1) {
@@ -238,7 +238,7 @@ byte filter(byte newVal, byte oldVal, byte number){
   else {
     return (int)(((float)newVal + (float)(number-1)*(float)oldVal)/(float)number);
   }
-}
+}*/
 
 float smooth(byte newVal, float oldVal, float filterStrength) {
   

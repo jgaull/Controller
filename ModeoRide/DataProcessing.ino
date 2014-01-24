@@ -1,5 +1,6 @@
 void manageDataProcessing(){
  if(rxDataIsFresh[DAT_RID_TRQ]==1){
+   handleSpeedMessage(rxData[DAT_MTR_SPD]);
    handleStrainMessage(rxData[DAT_RID_TRQ]);
    sendBleFlg = true;
    rxDataIsFresh[DAT_RID_TRQ]=0;
@@ -9,9 +10,9 @@ void manageDataProcessing(){
 }
 
 void recalculateStrainDampingMultiplier() {
-  strainDampingMultiplier = MAX_OUTPUT / sqrt(pow(MAX_INPUT, ((float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX) * 2));
+  strainDampingMultiplier = MAX_DAMPING_MULTIPLIER / sqrt(pow(maxStrainDampingSpeed, ((float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX) * 2));
   Serial.print("strainDampingMultiplier: ");
-  Serial.println(strainDampingMultiplier);
+  Serial.println(strainDampingMultiplier, 5);
 }
 
 
@@ -39,6 +40,10 @@ void addNewStroke(PedalStroke stroke) {
   
   return copy;
 }*/
+
+void handleSpeedMessage(byte newSpeed) {
+  currentSpeed = newSpeed; //this should have a filter applied.
+}
 
 void handleStrainMessage(byte newStrain) {
   //strain values come in as positive deltas
@@ -181,7 +186,10 @@ void handleStrainMessage(byte newStrain) {
   filterAmount *= filterMultiplier;
   
   float strainDampingExponent = ((float)STRAIN_DAMPING_CURVE / (float)UINT16_MAX) * 2;
-  float dampenedStrain = sqrt(pow(currentStrain, strainDampingExponent)) * strainDampingMultiplier;
+  float strainDamping = sqrt(pow(currentSpeed, strainDampingExponent)) * strainDampingMultiplier;
+  
+  strainDamping = constrain(strainDamping, 0, MAX_DAMPING_MULTIPLIER);
+  float dampenedStrain = currentStrain * strainDamping;
   riderEffort = smooth(dampenedStrain, riderEffort, filterAmount);
   
   float multiplier = ((float)torqueMultiplier / (float)UINT16_MAX) * 2;
@@ -192,17 +200,21 @@ void handleStrainMessage(byte newStrain) {
   Temp_Var_For_Fwd_Twrk_Msg = torque;
  // hasTorqueMessage = true;  //  NOW ALTERNATELY HANDLED BY MEDIUM MESSAGE RX TIMER 
   //for debug.
-  /*
-  Serial.print(torque);
-  Serial.print(",");
+  ///*
   Serial.print(dampenedStrain);
-  Serial.print(",");
-  Serial.print(riderEffort);
   Serial.print(",");
   Serial.print(currentStrain);
   Serial.print(",");
-  Serial.print(expectedStrain);
+  Serial.print(strainDamping);
   Serial.print(",");
+  Serial.print(riderEffort);
+  Serial.print(",");
+  Serial.print(filterAmount);
+  Serial.print(",");
+  //Serial.print(torque);
+  //Serial.print(",");
+  //Serial.print(expectedStrain);
+  //Serial.print(",");
   Serial.print(currentSpeed);
   Serial.print(",");
   Serial.print(micros());

@@ -25,13 +25,14 @@
 //  Constants for configuration of the strain characterization algorithm
 #define NUM_AVERAGED_STROKES 3
 #define MAX_STORED_STROKES 6
+#define MAX_DAMPING_MULTIPLIER 1
 #define SMOOTHING_DIVISOR 65535
 //   END Constants for configuration of the strain characterization algorithm
 
 //Constants for BLE properties
 #define NUM_AVERAGED_STROKES_BYTE 0x1A
 #define MAX_STORED_STROKES_BYTE 0x1B
-#define MAX_INPUT_BYTE 0x1C
+#define MAX_STRAIN_DAMPING_SPEED_BYTE 0x1C
 #define MAX_OUTPUT_BYTE 0x1D
 #define STRAIN_DAMPING_CURVE_BYTE 0x1E
 #define STROKE_TIMEOUT_CYCLES_BYTE 0x1F

@@ -135,13 +135,13 @@ void peformBluetoothReceive() {
         Serial.println(MAX_OUTPUT);
         break;
         
-      case MAX_INPUT_BYTE:
+      case MAX_STRAIN_DAMPING_SPEED_BYTE:
       
-        MAX_INPUT = value;
+        maxStrainDampingSpeed = value;
         recalculateStrainDampingMultiplier();
         
         Serial.print("maxInput: ");
-        Serial.println(MAX_INPUT);
+        Serial.println(maxStrainDampingSpeed);
         break;
         
       case STRAIN_DAMPING_CURVE_BYTE:
@@ -225,9 +225,9 @@ void performBluetoothSync() {
   BLEMini.write(MAX_OUTPUT);
   BLEMini.write(MAX_OUTPUT >> 8);
   
-  BLEMini.write(MAX_INPUT_BYTE);
-  BLEMini.write(MAX_INPUT);
-  BLEMini.write(MAX_INPUT >> 8);
+  BLEMini.write(MAX_STRAIN_DAMPING_SPEED_BYTE);
+  BLEMini.write(maxStrainDampingSpeed);
+  BLEMini.write(maxStrainDampingSpeed >> 8);
   
   BLEMini.write(STRAIN_DAMPING_CURVE_BYTE);
   BLEMini.write(STRAIN_DAMPING_CURVE);

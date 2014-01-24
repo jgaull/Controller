@@ -9,7 +9,7 @@ void manageDataProcessing(){
 }
 
 void recalculateStrainDampingMultiplier() {
-  strainDampingMultiplier = MAX_OUTPUT / sqrt(pow(MAX_INPUT, (float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX));
+  strainDampingMultiplier = MAX_OUTPUT / sqrt(pow(MAX_INPUT, ((float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX) * 2));
 }
 
 

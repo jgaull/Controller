@@ -10,6 +10,8 @@ void manageDataProcessing(){
 
 void recalculateStrainDampingMultiplier() {
   strainDampingMultiplier = MAX_OUTPUT / sqrt(pow(MAX_INPUT, ((float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX) * 2));
+  Serial.print("strainDampingMultiplier: ");
+  Serial.println(strainDampingMultiplier);
 }
 
 
@@ -164,15 +166,10 @@ void handleStrainMessage(byte newStrain) {
   currentPedalStroke[currentPedalStrokeLength % MAX_STROKE_LENGTH] = currentStrain;
   currentPedalStrokeLength++;
   
-  currentStrain = constrain(currentStrain, 0, MAX_INPUT);
-  float dampenedStrain = sqrt(pow(currentStrain, STRAIN_DAMPING_CURVE)) * strainDampingMultiplier;
-  
-  expectedStrain = constrain(expectedStrain, 0, MAX_INPUT);
-  float dampenedExpectedStrain = sqrt(pow(expectedStrain, STRAIN_DAMPING_CURVE)) * strainDampingMultiplier;
-  
-  float strainDiff = dampenedStrain - dampenedExpectedStrain; //moistened strain.
+  float strainDiff = currentStrain - expectedStrain;
   strainDiff = abs(strainDiff);
   
+  //Map will allow values above and below the max. I'm currently leaving them unconstrained.
   float filterAmount = map(MAX_OUTPUT - strainDiff, 0, MAX_OUTPUT, SMOOTHING_MIN, SMOOTHING_MAX);
   filterAmount /= (float)SMOOTHING_DIVISOR; //because map only works with round numbers.
   
@@ -183,7 +180,9 @@ void handleStrainMessage(byte newStrain) {
   
   filterAmount *= filterMultiplier;
   
-  riderEffort = smooth(currentStrain, riderEffort, filterAmount);
+  float strainDampingExponent = ((float)STRAIN_DAMPING_CURVE / (float)UINT16_MAX) * 2;
+  float dampenedStrain = sqrt(pow(currentStrain, strainDampingExponent)) * strainDampingMultiplier;
+  riderEffort = smooth(dampenedStrain, riderEffort, filterAmount);
   
   float multiplier = ((float)torqueMultiplier / (float)UINT16_MAX) * 2;
   float multipliedEffort = multiplier * riderEffort;
@@ -195,6 +194,8 @@ void handleStrainMessage(byte newStrain) {
   //for debug.
   /*
   Serial.print(torque);
+  Serial.print(",");
+  Serial.print(dampenedStrain);
   Serial.print(",");
   Serial.print(riderEffort);
   Serial.print(",");

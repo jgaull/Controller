@@ -1,6 +1,5 @@
 void manageDataProcessing(){
  if(rxDataIsFresh[DAT_RID_TRQ]==1){
-   handleSpeedMessage(rxData[DAT_MTR_SPD]);
    handleStrainMessage(rxData[DAT_RID_TRQ]);
    sendBleFlg = true;
    rxDataIsFresh[DAT_RID_TRQ]=0;
@@ -40,10 +39,6 @@ void addNewStroke(PedalStroke stroke) {
   
   return copy;
 }*/
-
-void handleSpeedMessage(byte newSpeed) {
-  currentSpeed = newSpeed; //this should have a filter applied.
-}
 
 void handleStrainMessage(byte newStrain) {
   //strain values come in as positive deltas
@@ -186,7 +181,7 @@ void handleStrainMessage(byte newStrain) {
   filterAmount *= filterMultiplier;
   
   float strainDampingExponent = ((float)STRAIN_DAMPING_CURVE / (float)UINT16_MAX) * 2;
-  float strainDamping = sqrt(pow(currentSpeed, strainDampingExponent)) * strainDampingMultiplier;
+  float strainDamping = sqrt(pow(rxData[DAT_MTR_SPD], strainDampingExponent)) * strainDampingMultiplier;
   
   strainDamping = constrain(strainDamping, 0, MAX_DAMPING_MULTIPLIER);
   float dampenedStrain = currentStrain * strainDamping;
@@ -211,11 +206,11 @@ void handleStrainMessage(byte newStrain) {
   Serial.print(",");
   Serial.print(filterAmount);
   Serial.print(",");
-  //Serial.print(torque);
-  //Serial.print(",");
+  Serial.print(torque);
+  Serial.print(",");
   //Serial.print(expectedStrain);
   //Serial.print(",");
-  Serial.print(currentSpeed);
+  Serial.print(rxData[DAT_MTR_SPD]);
   Serial.print(",");
   Serial.print(micros());
   Serial.println("");

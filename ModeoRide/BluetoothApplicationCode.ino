@@ -60,25 +60,25 @@ void writeBLEmsg(byte msgID, byte arrayPointer){
   
   
       BLEMini.write(msgID);
-    BLEMini.write(bleArray[arrayPointer][0]);
-    BLEMini.write(bleArray[arrayPointer][1]);
-    BLEMini.write(bleArray[arrayPointer][2]);
-    BLEMini.write(bleArray[arrayPointer][3]);
-    BLEMini.write(bleArray[arrayPointer][4]);
-    BLEMini.write(bleArray[arrayPointer][5]);
-    BLEMini.write(bleArray[arrayPointer][6]);
-    BLEMini.write(bleArray[arrayPointer][7]);
-    BLEMini.write(bleArray[arrayPointer][8]);
-    BLEMini.write(bleArray[arrayPointer][9]);
-    BLEMini.write(bleArray[arrayPointer][10]);
-    BLEMini.write(bleArray[arrayPointer][11]);
-    BLEMini.write(bleArray[arrayPointer][12]);
-    BLEMini.write(bleArray[arrayPointer][13]);
-    BLEMini.write(bleArray[arrayPointer][14]);
-    BLEMini.write(bleArray[arrayPointer][15]);    
-    BLEMini.write(bleArray[arrayPointer][16]);
-    BLEMini.write(bleArray[arrayPointer][17]);
-    BLEMini.write(bleArray[arrayPointer][18]);
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][1])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][1])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][2])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][3])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][4])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][5])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][6])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][7])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][8])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][9])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][10])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][11])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][12])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][13])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][14])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][15])));    
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][16])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][17])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][18])));
 }
 
 

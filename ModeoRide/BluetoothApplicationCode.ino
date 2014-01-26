@@ -39,7 +39,9 @@ void performBluetoothSend1() {
  Serial.print("sendBleFlg: ");
  Serial.println(sendBleFlg);*/
  
-  if (enableRiderEffortUpdates && sendBleFlg)
+//   if (enableRiderEffortUpdates && sendBleFlg)
+ 
+  if (sendBleFlg)
   {
     digitalWrite(INDICATOR_LED_PIN, HIGH);
     float convertedEffort = ((float)riderEffort / (float)MAX_EFFORT) * UINT16_MAX;

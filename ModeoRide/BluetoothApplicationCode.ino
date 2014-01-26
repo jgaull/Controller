@@ -39,16 +39,21 @@ void performBluetoothSend1() {
  Serial.print("sendBleFlg: ");
  Serial.println(sendBleFlg);*/
  
-  if (enableRiderEffortUpdates && sendBleFlg)
+//   if (enableRiderEffortUpdates && sendBleFlg)
+ 
+  if (sendBleFlg)
   {
     digitalWrite(INDICATOR_LED_PIN, HIGH);
     float convertedEffort = ((float)riderEffort / (float)MAX_EFFORT) * UINT16_MAX;
     uint16_t effortValue = constrain(convertedEffort, 0, UINT16_MAX);
     BLEMini.write(RIDER_EFFORT_BYTE);
-    BLEMini.write(effortValue);
-    BLEMini.write(effortValue >> 8);
+    BLEMini.write(rxData[DAT_RID_TRQ]);
+    BLEMini.write((byte)0x00);
     
     sendBleFlg = false;  // clear ready to transmit flag
+  
+   Serial.println(rxData[DAT_RID_TRQ]);
+
   }
   else
   {

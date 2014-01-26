@@ -9,7 +9,7 @@ void performCANRX() {
     if (rxLen == 4)
     {
       for (int rxPointer = 0; rxPointer < 32; rxPointer++) {
-        if (RX_IDS[rxPointer] == rxBuf[1]) {
+        if (pgm_read_byte(&(RX_IDS[rxPointer])) == rxBuf[1]) {
           rxData[rxPointer] = rxBuf[3];
           rxDataIsFresh[rxPointer] = 1;
         }

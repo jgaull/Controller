@@ -1,12 +1,55 @@
 void manageDataProcessing(){
  if(rxDataIsFresh[DAT_RID_TRQ]==1){
    handleStrainMessage(rxData[DAT_RID_TRQ]);
+   //meadowsFilterAndTorque(rxData[DAT_RID_TRQ]);
    sendBleFlg = true;
    rxDataIsFresh[DAT_RID_TRQ]=0;
- }
+   
+  }
+ 
+}
+ 
+ 
+void meadowsFilterAndTorque(byte newRiderTrq)
+{
+if (meadowsStrainBuffer < 10)
+{
+  meadowsStrainBuffer = (meadowsStrainBuffer+ newRiderTrq) / 2;
+}
+else{
+  meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
+  meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
+}
+ 
+ 
+  byte torque = map(meadowsStrainBuffer, 0, 40, 0, 64 );
+  
+  torque = constrain(torque, 0,64);
+
+  Temp_Var_For_Fwd_Twrk_Msg = torque;
+ 
+ /*
+  Serial.print(meadowsStrainBuffer);
+  Serial.print(",");
+  Serial.print(torque);
+  Serial.print(",");
+  Serial.print(rxData[DAT_MTR_TRQ]);
+  Serial.print(",");
+  Serial.print(rxData[DAT_RID_TRQ]);
+  Serial.print(",");
+  Serial.print(rxData[DAT_MTR_SPD]);
+  Serial.print(",");
+  Serial.print(micros());
+  Serial.println("");
+ */
+}
+
+
+ 
+ 
+ 
  
   
-}
 
 void recalculateStrainDampingMultiplier() {
   strainDampingMultiplier = MAX_DAMPING_MULTIPLIER / sqrt(pow(maxStrainDampingSpeed, ((float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX) * 2));
@@ -208,8 +251,10 @@ void handleStrainMessage(byte newStrain) {
   Serial.print(",");
   Serial.print(torque);
   Serial.print(",");
-  //Serial.print(expectedStrain);
-  //Serial.print(",");
+  Serial.print(rxData[DAT_MTR_TRQ]);
+  Serial.print(",");
+  Serial.print(rxData[DAT_RID_TRQ]);
+  Serial.print(",");
   Serial.print(rxData[DAT_MTR_SPD]);
   Serial.print(",");
   Serial.print(micros());

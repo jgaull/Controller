@@ -66,7 +66,7 @@ void performPeriodicMessageSend(unsigned long now) {
     if (fastTxPointer < (sizeof(fastTxMsgs) / sizeof(fastTxMsgs[0]))) {
       unsigned char txBuf[4] = {0, pgm_read_byte(&(fastTxMsgs[fastTxPointer][2])), 0, fastTxData[2]};
       CAN.sendMsgBuf(pgm_read_byte(&(fastTxMsgs[fastTxPointer][0])), 0, pgm_read_byte(&(fastTxMsgs[fastTxPointer][1])), txBuf);
-
+      delay(1);
       fastTxPointer++;
     }
     else {
@@ -79,6 +79,7 @@ void performPeriodicMessageSend(unsigned long now) {
   {
     unsigned char txBuf[4] = {0, 0x09, Temp_Var_For_Fwd_Twrk_UpperByte, Temp_Var_For_Fwd_Twrk_Msg};
     CAN.sendMsgBuf(0x20, 0, 0x04, txBuf);
+    delay(1);
     trqCmdTxFlag = false;
   }
   else if (mediumTxFlag && EnableCANTX)
@@ -86,7 +87,7 @@ void performPeriodicMessageSend(unsigned long now) {
     if (mediumTxPointer < (sizeof(mediumTxMsgs) / sizeof(mediumTxMsgs[0]))) {
       unsigned char txBuf[2] = {0, pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][2]))};
       CAN.sendMsgBuf(pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][0])), 0, pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][1])), txBuf);
-
+delay(1);
       mediumTxPointer++;
     }
     else {
@@ -99,7 +100,7 @@ void performPeriodicMessageSend(unsigned long now) {
     if (slowTxPointer < (sizeof(slowTxMsgs) / sizeof(slowTxMsgs[0]))) {
       unsigned char txBuf[2] = {0, pgm_read_byte(&(slowTxMsgs[slowTxPointer][2]))};
       CAN.sendMsgBuf(pgm_read_byte(&(slowTxMsgs[slowTxPointer][0])), 0, pgm_read_byte(&(slowTxMsgs[slowTxPointer][1])), txBuf);
-
+delay(1);
       slowTxPointer++;
     }
     else {
@@ -108,7 +109,7 @@ void performPeriodicMessageSend(unsigned long now) {
     }
   }
 
-  delay(1);
+  
   //canMsgTxStamp = now;
   //}
 }

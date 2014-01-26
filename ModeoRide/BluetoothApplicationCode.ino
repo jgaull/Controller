@@ -50,9 +50,7 @@ void performBluetoothSend1() {
     BLEMini.write(rxData[DAT_RID_TRQ]);
     BLEMini.write((byte)0x00);
     
-    sendBleFlg = false;  // clear ready to transmit flag
-  
-   Serial.println(rxData[DAT_RID_TRQ]);
+    sendBleFlg = false;  // clear ready to transmit flag 
 
   }
   else

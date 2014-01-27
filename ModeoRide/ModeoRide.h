@@ -27,6 +27,7 @@
 #define MAX_STORED_STROKES 6
 #define MAX_DAMPING_MULTIPLIER 1
 #define SMOOTHING_DIVISOR 65535
+#define MAX_STRAIN_DAMPING_CURVE 10
 //   END Constants for configuration of the strain characterization algorithm
 
 //Constants for BLE properties
@@ -41,9 +42,11 @@
 #define MAX_EFFORT_BYTE 0x2C
 #define ENABLE_RIDER_EFFORT_UPDATES_BYTE 0x2D
 #define TORQUE_MULTIPLIER_BYTE 0x2E
+#define ENABLE_CURRENT_STRAIN_UPDATES_BYTE 0x2F
 
 //Values sent from sensors to iOS
 #define RIDER_EFFORT_BYTE 0x0A
+#define CURRENT_STRAIN_BYTE 0x0B
 
 //Used to sync iOS to Arduino
 #define SEND_PARAMS_BYTE 0xEE

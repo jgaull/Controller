@@ -10,9 +10,13 @@ void manageDataProcessing(){
 }
 
 void recalculateStrainDampingMultiplier() {
-  strainDampingMultiplier = MAX_DAMPING_MULTIPLIER / sqrt(pow(maxStrainDampingSpeed, ((float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX) * 2));
+  strainDampingMultiplier = MAX_DAMPING_MULTIPLIER / sqrt(pow(maxStrainDampingSpeed, ((float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX) * MAX_STRAIN_DAMPING_CURVE));
   Serial.print("strainDampingMultiplier: ");
   Serial.println(strainDampingMultiplier, 5);
+  
+  float strainDampingExponent = ((float)STRAIN_DAMPING_CURVE / (float)UINT16_MAX) * MAX_STRAIN_DAMPING_CURVE;
+  Serial.print("strainDampingExponent: ");
+  Serial.println(strainDampingExponent);
 }
 
 
@@ -185,7 +189,7 @@ void handleStrainMessage(byte newStrain) {
   
   filterAmount *= filterMultiplier;
   
-  float strainDampingExponent = ((float)STRAIN_DAMPING_CURVE / (float)UINT16_MAX) * 2;
+  float strainDampingExponent = ((float)STRAIN_DAMPING_CURVE / (float)UINT16_MAX) * MAX_STRAIN_DAMPING_CURVE;
   float strainDamping = sqrt(pow(currentSpeed, strainDampingExponent)) * strainDampingMultiplier;
   
   strainDamping = constrain(strainDamping, 0, MAX_DAMPING_MULTIPLIER);
@@ -200,7 +204,7 @@ void handleStrainMessage(byte newStrain) {
   Temp_Var_For_Fwd_Twrk_Msg = torque;
  // hasTorqueMessage = true;  //  NOW ALTERNATELY HANDLED BY MEDIUM MESSAGE RX TIMER 
   //for debug.
-  ///*
+  /*
   Serial.print(dampenedStrain);
   Serial.print(",");
   Serial.print(currentStrain);

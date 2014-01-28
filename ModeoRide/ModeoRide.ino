@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /*
-ModeoRide Mk3
+ModeoRide Mk2
 Jon Gaull and Isaac Meadows
 January 2012
 
@@ -10,8 +10,6 @@ Trq cmd sent on every strain message reciept
 
 Mk2a - Reorganized code.  Added periodic message queues
 
-Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
-
 
 
 */
@@ -19,33 +17,44 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 
 //  LIBRARIES
 #include <SPI.h>                        //  For sparkfun CAN board communications
-#include <boards.h>
+#include <boards.h>        
 #include <services.h>                 //  boards.h and services.h are old libraries for the fullsize BLE board
 #include <mcp_can.h>                    //  Awesome library for CAN board, specifically traceivers 
 //#include <MemoryFree.h>
 #include <AltSoftSerial.h>    			//  Serial comms library for communication with RedBear BLE Mini
-#include <avr/pgmspace.h>
-#include <EEPROM.h>
 // END LIBRARIES
 //#include <ble_mini.h>
 
-#include "ModeoRide.h"                  //  Local headers, need to move constants here
-#include "CAN_Definitions.h"
-#include "BLE_Definitions.h"
-#include "DataProcessing_Definitions.h"
-#include "EEPROM_Definitions.h"
-
+ #include "ModeoRide.h"                  //  Local headers, need to move constants here
 
 //VARIABLE DECLARATIONS FOLLOW
 
-PROGMEM prog_uchar RX_IDS[32] = {0x11, 0x14, 0x16, 0x21, 0x70, 0x72, 0x32, 0xAA, 0x9A, 0x12, 0x20, 0x92, 0x6C, 0x30, 0x31, 0x33, 0x61, 0x80, 0x1D, 0x3B, 0x3C, 0x3D, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xF0, 0xF9, 0xFA, 0xFB, 0xFC};
+const byte bleArray [6] [19] = {
+  {0xA0,0x11,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x0F},
+  {0xB0,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x0E},
+  {0xC0,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0xD0},
+  {0xD0,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x0C},
+  {0xE0,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x0B},
+  {0xF0,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x0A}, // 6 row, 19 col
+};
+
+byte bleFastPointer = 0;
+byte bleMedPointer = 0;
+byte bleSlowPointer = 0;
+
+//byte bleSlowBuff[] =  {0x0,0x10,0x20,0x30,0x40,0x50,0x60,0x70,0x80,0x90,0x11,0x21,0x31,0x41,0x51,0xF1,0xF2,0xF3,0xF3,0xF5};
+
+const byte RX_IDS[32] = {0x11,0x14,0x16,0x21,0x70,0x72,0x32,0xAA,0x9A,0x12,0x20,0x92,0x6C,0x30,0x31,0x33,0x61,0x80,0x1D,0x3B,0x3C,0x3D,0xA1,0xA2,0xA3,0xA4,0xA5,0xF0,0xF9,0xFA,0xFB,0xFC};
 byte rxData[32];
-bool rxDataIsFresh[32] = {0};
+bool rxDataIsFresh[32]={0};
 
-byte Temp_Var_For_Fwd_Twrk_Msg;
-byte Temp_Var_For_Fwd_Twrk_UpperByte;
+byte Temp_Var_For_Fwd_Twrk_Msg;  
+byte Temp_Var_For_Fwd_Twrk_UpperByte;  
 
-
+unsigned long bleTxStamp = 0;
+unsigned long bleFastStamp = 0;
+unsigned long bleMedStamp = 0;
+unsigned long bleSlowStamp = 0;
 
 
 byte rxLen = 0;
@@ -58,7 +67,7 @@ byte txBuf[8];
 unsigned char CMD_TX_LEN = 4;
 unsigned char QUERY_TX_LEN = 2;
 byte CYCLE_TX_RATE = 200;
-byte CycleTxCnt = 0;
+byte CycleTxCnt =0;
 
 byte CYCLE_DEBUG_RATE = 100;
 byte CycleDebugCnt = 0;
@@ -72,13 +81,55 @@ unsigned int CycleActionCnt = 0;
 bool sendBleFlg = 0;
 bool readyToStart = 1;
 bool EnableCANTX = 0;
-bool EnableBluetoothTX = 0;
-bool EnableBluetoothRX = 0;
+bool EnableBluetoothTX=0;
+bool EnableBluetoothRX=0;
 byte trqAssistState = TRQ_ASSIST_OFF;
 
 long unsigned int rxId;
 long unsigned int txId;
 
+const byte fastTxMsgs[][3] = {  // ID, DLC, sigID
+  {0x20, 0x02, 0x11},
+  {0x20, 0x04, 0x0A}
+
+};
+byte fastTxData [(sizeof(fastTxMsgs)/sizeof(fastTxMsgs[0]))] = {0};
+
+const byte mediumTxMsgs[][3] = {  // ID, DLC, sigID
+ {0x58, 0x02, 0x9C},
+ {0x10, 0x02, 0x32},
+ {0x10, 0x02, 0x9A},
+ {0x10, 0x02, 0xAA},
+ {0x20, 0x02, 0x14},
+ {0x20, 0x02, 0x21},
+ {0x20, 0x02, 0x70},
+ {0x20, 0x02, 0x72},
+};
+
+const byte slowTxMsgs[][3] = {
+ {0x10, 0x02, 0x30},
+ {0x10, 0x02, 0x31},
+ {0x10, 0x02, 0x33},
+ {0x10, 0x02, 0x61},
+ {0x10, 0x02, 0x80},
+ {0x10, 0x02, 0x1D},
+ {0x10, 0x02, 0xA1},
+ {0x10, 0x02, 0xA2},
+ {0x10, 0x02, 0xA3},
+ {0x10, 0x02, 0xA4},
+ {0x10, 0x02, 0xA5},
+ {0x20, 0x02, 0x12},
+ {0x20, 0x02, 0x16},
+ {0x20, 0x02, 0x92},
+
+};
+
+
+
+canMsg rxMsgs[1];
+byte RXno=0;
+
+byte txPointer = 0;
 
 byte realTorque;
 byte vBatt;
@@ -99,11 +150,10 @@ byte cyclesSinceLastStroke = 0;
 uint16_t SMOOTHING_MIN = 58982; //The map function only works with whole numbers...
 uint16_t SMOOTHING_MAX = 64224;
 uint16_t MAX_OUTPUT = 150;
-uint16_t MAX_INPUT = 150;
 uint16_t STRAIN_DAMPING_CURVE = 117963; //Must be > 0 and < 2. Smaller number means steeper curve and more aggressive damping.
 uint16_t STROKE_TIMEOUT_CYCLES = 40;
 uint16_t MAX_EFFORT = 100;
-uint16_t torqueMultiplier = 100;
+uint16_t torqueMultiplier = 0;
 uint16_t maxStrainDampingSpeed = 8;
 
 bool enableRiderEffortUpdates = false;
@@ -114,14 +164,32 @@ bool enableBatteryVoltageUpdates = false;
 
 //float previousStrokeWeights[NUM_AVERAGED_STROKES] = { 0.5f, 1.0f, 0.5f, 1.0f };
 
+byte currentSpeed = 0;
 float riderEffort = 0;
 
 float strainDampingMultiplier = 0.0f;
 
-boolean trqCmdTxFlag = false;
+boolean hasTorqueMessage = false;
 
 //*****TrqMgmt Variables
 
+
+unsigned long fastTxStamp = 0;
+unsigned long mediumTxStamp = 0;
+unsigned long slowTxStamp = 0;
+
+
+
+
+unsigned long canMsgTxStamp = 0;
+
+bool fastTxFlag = 0;
+bool mediumTxFlag = 0;
+bool slowTxFlag = 0;
+
+byte mediumTxPointer = 0;
+byte slowTxPointer = 0;
+byte fastTxPointer = 0;
 
 byte REAL_SPEED_THRESH = 0x04;
 byte VBATT_THRESH = 0xA0;
@@ -136,22 +204,22 @@ void setup()
 {
 
   Serial.begin(9600);    // Enable serial debug
-
+  
   pinMode(ON_OFF_SWITCH_PIN, INPUT);
   pinMode(INDICATOR_LED_PIN, OUTPUT);
   pinMode(WAKE_RELAY_PIN, OUTPUT);
   pinMode(CAN_READY_PIN, INPUT);
   pinMode(MARKER_PIN, INPUT);
-
+  
   // Default to internally pull high, change it if you need
   //digitalWrite(DIGITAL_IN_PIN, HIGH);
   //digitalWrite(DIGITAL_IN_PIN, LOW);
-
+  
   CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx system
 
   BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
   recalculateStrainDampingMultiplier();
-
+  
 }
 
 
@@ -161,52 +229,52 @@ void loop()
   manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
 
   managePhysicalIO();
-
+  
   performCANRX();
-
+  
   unsigned long now = micros();
 
-  // performBluetoothSend(now);
-
+ // performBluetoothSend(now);
+ 
   performBluetoothSend1();
-
+  
   peformBluetoothReceive();
 
-
+  
   performPeriodicMessageSend(now);
 
   manageTxTimers(now);
   manageDataProcessing();
-
+  
   //performSerialDebugging();
 
   manageActionCounter();
 }
 
-void performSerialDebugging() {
-  if (CycleActionCnt % CYCLE_DEBUG_RATE == 0) {
-    Serial.print(rxData[DAT_MTR_SPD]);
-    Serial.print(",TrqUpper: ");
-    Serial.print(Temp_Var_For_Fwd_Twrk_Msg);
-    Serial.print(",TrqLower");
-    Serial.print(Temp_Var_For_Fwd_Twrk_Msg);
-    Serial.print(",Effort: ");
-    Serial.print(riderEffort);
-    Serial.print(",Curr Strn:");
-    Serial.print(currentStrain);
-    Serial.print(",PedStrkLen: ");
-    Serial.print(currentPedalStrokeLength);
-    Serial.print(",StrokesLen:");
-    Serial.print(strokesLength);
-    Serial.println(" ");
-
+void performSerialDebugging(){
+  if (CycleActionCnt % CYCLE_DEBUG_RATE == 0){
+  Serial.print(rxData[DAT_MTR_SPD]);
+  Serial.print(",TrqUpper: ");
+  Serial.print(Temp_Var_For_Fwd_Twrk_Msg);
+  Serial.print(",TrqLower");
+  Serial.print(Temp_Var_For_Fwd_Twrk_Msg);
+  Serial.print(",Effort: ");
+  Serial.print(riderEffort);
+  Serial.print(",Curr Strn:");
+  Serial.print(currentStrain);
+  Serial.print(",PedStrkLen: ");
+  Serial.print(currentPedalStrokeLength);
+  Serial.print(",StrokesLen:");
+  Serial.print(strokesLength);
+  Serial.println(" ");
+  
   }
 }
 
-void manageActionCounter() {
-  if ( CycleActionCnt == CYCLE_ACTION_COUNTER)
+void manageActionCounter(){
+ if ( CycleActionCnt == CYCLE_ACTION_COUNTER)
   {
-    CycleActionCnt = 0;
+    CycleActionCnt = 0;   
   }
   else if (CycleActionCnt > CYCLE_ACTION_COUNTER)
   {
@@ -214,26 +282,26 @@ void manageActionCounter() {
   }
   else
   {
-    CycleActionCnt++;
+    CycleActionCnt++;    
   }
 }
 
-void manageVehicleState(bool switchValue) {
-  if (readyToStart == 1 && switchValue == HIGH)
-  {
-    activateBionx();  // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
-    readyToStart = 0;
-    EnableCANTX = 1;
-    EnableBluetoothTX = 1;
-    EnableBluetoothRX = 1;
-  }
-  else if (readyToStart == 0 && switchValue == LOW)
-  {
-    shutdownBionx();   // send the stop cmds to the battery and motor inverter if the switch is off while we were running
-    readyToStart = 1;
-    EnableCANTX = 0;
-    EnableBluetoothTX = 0;
-    EnableBluetoothRX = 0;
-  }
+void manageVehicleState(bool switchValue){
+     if (readyToStart == 1 && switchValue == HIGH)
+    {
+      activateBionx();  // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
+      readyToStart = 0;
+      EnableCANTX = 1;  
+      EnableBluetoothTX = 1;
+      EnableBluetoothRX = 1;
+    }
+    else if (readyToStart == 0 && switchValue == LOW)
+    {
+      shutdownBionx();   // send the stop cmds to the battery and motor inverter if the switch is off while we were running
+      readyToStart = 1;    
+      EnableCANTX = 0;
+      EnableBluetoothTX = 0;
+      EnableBluetoothRX = 0;
+    }  
 }
 

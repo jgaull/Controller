@@ -1,11 +1,10 @@
 void activateBionx(){
-     //digitalWrite(WAKE_RELAY_PIN,HIGH);
+     digitalWrite(WAKE_RELAY_PIN,HIGH);
      digitalWrite(INDICATOR_LED_PIN, HIGH);
      
-     delay(1000);
-     retrieveCalibrations();
+     delay(5000);
      
-     //digitalWrite(WAKE_RELAY_PIN,LOW);
+     digitalWrite(WAKE_RELAY_PIN,LOW);
      digitalWrite(INDICATOR_LED_PIN, LOW);
      
     
@@ -104,9 +103,6 @@ void activateBionx(){
 
 
 void shutdownBionx(){
-  
-  storeCalibrations();
-  
 //  JIC code:  SEND TWO zero-speed commands, SEND 0A command, SET DIRECTION FORWARD
     txBuf[1]= 0x00;
     txBuf[1]= CMD_MTR_TRQ_ID;

@@ -1,22 +1,104 @@
 void manageDataProcessing(){
  if(rxDataIsFresh[DAT_RID_TRQ]==1){
-   handleSpeedMessage(rxData[DAT_MTR_SPD]);
    handleStrainMessage(rxData[DAT_RID_TRQ]);
+   //meadowsFilterAndTorqueBasic(rxData[DAT_RID_TRQ]);
+   //meadowsFilterAndTorqueAdvanced(rxData[DAT_RID_TRQ]);
    sendBleFlg = true;
    rxDataIsFresh[DAT_RID_TRQ]=0;
- }
+   
+  }
+ 
+}
+ 
+ 
+void meadowsFilterAndTorqueBasic(byte newRiderTrq)
+{
+if (meadowsStrainBuffer < 10)
+{
+  meadowsStrainBuffer = (meadowsStrainBuffer+ newRiderTrq) / 2;
+}
+else{
+  meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
+  meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
+}
+ 
+ 
+  byte torque = map(meadowsStrainBuffer, 0, 40, 0, 64 );
+  
+  torque = constrain(torque, 0,64);
+
+  Temp_Var_For_Fwd_Twrk_Msg = torque;
+ 
+ 
+  Serial.print(meadowsStrainBuffer);
+  Serial.print(",");
+  Serial.print(torque);
+  Serial.print(",");
+  Serial.print(rxData[DAT_MTR_TRQ]);
+  Serial.print(",");
+  Serial.print(rxData[DAT_RID_TRQ]);
+  Serial.print(",");
+  Serial.print(rxData[DAT_MTR_SPD]);
+  Serial.print(",");
+  Serial.print(micros());
+  Serial.println("");
+ 
+}
+
+
+
+
+void meadowsFilterAndTorqueAdvanced(byte newRiderTrq)
+{
+if (meadowsStrainBuffer < 10)
+{
+  meadowsStrainBuffer = (meadowsStrainBuffer+ newRiderTrq) / 2;
+}
+else{
+  meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
+}
+ 
+ unsigned long now = micros();
+ 
+ 
+  byte torque = map(meadowsStrainBuffer, 0, 40, 0, 64 );
+  
+  torque = constrain(torque, 0,64);
+     Temp_Var_For_Fwd_Twrk_Msg = torque;
+
+ 
+   if ((now >= TrqTimestamp + TRQ_UPDATE_DELTA) || ((now < TrqTimestamp) && ((4294967295 - (TrqTimestamp + now)) >= TRQ_UPDATE_DELTA))) {
+    TrqTimestamp = now;
+
+  }
+ 
+ 
+ 
+ 
+  Serial.print(meadowsStrainBuffer);
+  Serial.print(",");
+  Serial.print(torque);
+  Serial.print(",");
+  Serial.print(rxData[DAT_MTR_TRQ]);
+  Serial.print(",");
+  Serial.print(rxData[DAT_RID_TRQ]);
+  Serial.print(",");
+  Serial.print(rxData[DAT_MTR_SPD]);
+  Serial.print(",");
+  Serial.print(micros());
+  Serial.println("");
+ 
+}
+
+
+ 
+ 
+ 
  
   
-}
 
 void recalculateStrainDampingMultiplier() {
   strainDampingMultiplier = MAX_DAMPING_MULTIPLIER / sqrt(pow(maxStrainDampingSpeed, ((float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX) * MAX_STRAIN_DAMPING_CURVE));
-  Serial.print("strainDampingMultiplier: ");
-  Serial.println(strainDampingMultiplier, 5);
-  
-  float strainDampingExponent = ((float)STRAIN_DAMPING_CURVE / (float)UINT16_MAX) * MAX_STRAIN_DAMPING_CURVE;
-  Serial.print("strainDampingExponent: ");
-  Serial.println(strainDampingExponent);
 }
 
 
@@ -44,10 +126,6 @@ void addNewStroke(PedalStroke stroke) {
   
   return copy;
 }*/
-
-void handleSpeedMessage(byte newSpeed) {
-  currentSpeed = newSpeed; //this should have a filter applied.
-}
 
 void handleStrainMessage(byte newStrain) {
   //strain values come in as positive deltas
@@ -190,7 +268,10 @@ void handleStrainMessage(byte newStrain) {
   filterAmount *= filterMultiplier;
   
   float strainDampingExponent = ((float)STRAIN_DAMPING_CURVE / (float)UINT16_MAX) * MAX_STRAIN_DAMPING_CURVE;
-  float strainDamping = sqrt(pow(currentSpeed, strainDampingExponent)) * strainDampingMultiplier;
+  float strainDamping = sqrt(pow(rxData[DAT_MTR_SPD], strainDampingExponent)) * strainDampingMultiplier;
+  
+  //float strainDampingExponent = ((float)STRAIN_DAMPING_CURVE / (float)UINT16_MAX) * 2;
+  //float strainDamping = sqrt(pow(rxData[DAT_MTR_SPD], strainDampingExponent)) * strainDampingMultiplier;
   
   strainDamping = constrain(strainDamping, 0, MAX_DAMPING_MULTIPLIER);
   float dampenedStrain = currentStrain * strainDamping;
@@ -215,11 +296,13 @@ void handleStrainMessage(byte newStrain) {
   Serial.print(",");
   Serial.print(filterAmount);
   Serial.print(",");
-  //Serial.print(torque);
-  //Serial.print(",");
-  //Serial.print(expectedStrain);
-  //Serial.print(",");
-  Serial.print(currentSpeed);
+  Serial.print(torque);
+  Serial.print(",");
+  Serial.print(rxData[DAT_MTR_TRQ]);
+  Serial.print(",");
+  Serial.print(rxData[DAT_RID_TRQ]);
+  Serial.print(",");
+  Serial.print(rxData[DAT_MTR_SPD]);
   Serial.print(",");
   Serial.print(micros());
   Serial.println("");

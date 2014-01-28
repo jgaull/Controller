@@ -38,7 +38,6 @@ void performBluetoothSend1() {
  Serial.println(enableRiderEffortUpdates);
  Serial.print("sendBleFlg: ");
  Serial.println(sendBleFlg);*/
- boolean hasSentValue = false;
  
 //   if (enableRiderEffortUpdates && sendBleFlg)
  
@@ -50,20 +49,13 @@ void performBluetoothSend1() {
     BLEMini.write(RIDER_EFFORT_BYTE);
     BLEMini.write(effortValue);
     BLEMini.write(effortValue >> 8);
-    hasSentValue = true;
+    
+    sendBleFlg = false;  // clear ready to transmit flag
   }
-  
-  if (enableCurrentStrainUpdates && sendBleFlg) {
-    float convertedStrain = ((float)currentStrain / (float)MAX_OUTPUT) * UINT16_MAX;
-    uint16_t strainValue = constrain(convertedStrain, 0, UINT16_MAX);
-    BLEMini.write(CURRENT_STRAIN_BYTE);
-    BLEMini.write(strainValue);
-    BLEMini.write(strainValue >> 8);
-    hasSentValue = true;
+  else
+  {
+    digitalWrite(INDICATOR_LED_PIN, LOW);
   }
-  
-  digitalWrite(INDICATOR_LED_PIN, hasSentValue);
-  sendBleFlg = false;  // clear ready to transmit flag
 }
 
 void writeBLEmsg(byte msgID, byte arrayPointer){
@@ -288,10 +280,6 @@ void performBluetoothSync() {
   BLEMini.write(TORQUE_MULTIPLIER_BYTE);
   BLEMini.write(torqueMultiplier);
   BLEMini.write(torqueMultiplier >> 8);
-  
-  BLEMini.write(ENABLE_CURRENT_STRAIN_UPDATES_BYTE);
-  BLEMini.write(enableCurrentStrainUpdates);
-  BLEMini.write(enableCurrentStrainUpdates >> 8);
 }
 
 

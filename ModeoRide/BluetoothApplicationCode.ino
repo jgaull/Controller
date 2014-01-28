@@ -40,6 +40,8 @@ void performBluetoothSend1() {
  Serial.println(sendBleFlg);*/
  boolean hasSentValue = false;
  
+//   if (enableRiderEffortUpdates && sendBleFlg)
+ 
   if (enableRiderEffortUpdates && sendBleFlg)
   {
     digitalWrite(INDICATOR_LED_PIN, HIGH);
@@ -68,25 +70,25 @@ void writeBLEmsg(byte msgID, byte arrayPointer){
   
   
       BLEMini.write(msgID);
-    BLEMini.write(bleArray[arrayPointer][0]);
-    BLEMini.write(bleArray[arrayPointer][1]);
-    BLEMini.write(bleArray[arrayPointer][2]);
-    BLEMini.write(bleArray[arrayPointer][3]);
-    BLEMini.write(bleArray[arrayPointer][4]);
-    BLEMini.write(bleArray[arrayPointer][5]);
-    BLEMini.write(bleArray[arrayPointer][6]);
-    BLEMini.write(bleArray[arrayPointer][7]);
-    BLEMini.write(bleArray[arrayPointer][8]);
-    BLEMini.write(bleArray[arrayPointer][9]);
-    BLEMini.write(bleArray[arrayPointer][10]);
-    BLEMini.write(bleArray[arrayPointer][11]);
-    BLEMini.write(bleArray[arrayPointer][12]);
-    BLEMini.write(bleArray[arrayPointer][13]);
-    BLEMini.write(bleArray[arrayPointer][14]);
-    BLEMini.write(bleArray[arrayPointer][15]);    
-    BLEMini.write(bleArray[arrayPointer][16]);
-    BLEMini.write(bleArray[arrayPointer][17]);
-    BLEMini.write(bleArray[arrayPointer][18]);
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][1])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][1])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][2])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][3])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][4])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][5])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][6])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][7])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][8])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][9])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][10])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][11])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][12])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][13])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][14])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][15])));    
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][16])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][17])));
+    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][18])));
 }
 
 
@@ -105,10 +107,18 @@ void peformBluetoothReceive() {
     byte data1 = BLEMini.read();
     byte data2 = BLEMini.read();
     
-    Serial.print("identifier: ");
-    Serial.println(identifier);
+    /*Serial.print("data1: ");
+    Serial.println(data1);
+    Serial.print("data2: ");
+    Serial.println(data2);*/
+    
+    //Serial.print("identifier: ");
+    //Serial.println(identifier);
     
     uint16_t value = (data2 << 8) + data1;
+    
+    //Serial.print("value: ");
+    //Serial.println(value);
     
     if (identifier == SEND_PARAMS_BYTE) {
         performBluetoothSync();
@@ -116,22 +126,23 @@ void peformBluetoothReceive() {
         return;
     }
     
+    boolean isValidIdentifier = true;
     switch(identifier)
     {
       case SMOOTHING_MIN_BYTE:
       
         SMOOTHING_MIN = value;
         
-        Serial.print("smoothingMin: ");
-        Serial.println(SMOOTHING_MIN);
+        //Serial.print("smoothingMin: ");
+        //Serial.println(SMOOTHING_MIN);
         break;
         
       case SMOOTHING_MAX_BYTE:
       
         SMOOTHING_MAX = value;
         
-        Serial.print("smoothingMax: ");
-        Serial.println(SMOOTHING_MAX);
+        //Serial.print("smoothingMax: ");
+        //Serial.println(SMOOTHING_MAX);
         break;
       
       case MAX_OUTPUT_BYTE:
@@ -139,8 +150,8 @@ void peformBluetoothReceive() {
         MAX_OUTPUT = value;
         recalculateStrainDampingMultiplier();
         
-        Serial.print("maxOutput: ");
-        Serial.println(MAX_OUTPUT);
+        //Serial.print("maxOutput: ");
+        //Serial.println(MAX_OUTPUT);
         break;
         
       case MAX_STRAIN_DAMPING_SPEED_BYTE:
@@ -148,8 +159,8 @@ void peformBluetoothReceive() {
         maxStrainDampingSpeed = value;
         recalculateStrainDampingMultiplier();
         
-        Serial.print("maxInput: ");
-        Serial.println(maxStrainDampingSpeed);
+        //Serial.print("maxInput: ");
+        //Serial.println(maxStrainDampingSpeed);
         break;
         
       case STRAIN_DAMPING_CURVE_BYTE:
@@ -158,24 +169,24 @@ void peformBluetoothReceive() {
         STRAIN_DAMPING_CURVE = value;
         recalculateStrainDampingMultiplier();
         
-        Serial.print("strainDampingCurve: ");
-        Serial.println(STRAIN_DAMPING_CURVE);
+        //Serial.print("strainDampingCurve: ");
+        //Serial.println(STRAIN_DAMPING_CURVE);
         break;
       
       case STROKE_TIMEOUT_CYCLES_BYTE:
       
         STROKE_TIMEOUT_CYCLES = value;
         
-        Serial.print("strokeTimeoutCycles: ");
-        Serial.println(STROKE_TIMEOUT_CYCLES);
+        //Serial.print("strokeTimeoutCycles: ");
+        //Serial.println(STROKE_TIMEOUT_CYCLES);
         break;
         
       case MAX_EFFORT_BYTE:
       
         MAX_EFFORT = value;
         
-        Serial.print("maxEffort: ");
-        Serial.println(MAX_EFFORT);
+        //Serial.print("maxEffort: ");
+        //Serial.println(MAX_EFFORT);
         break;
         
       case ENABLE_RIDER_EFFORT_UPDATES_BYTE:
@@ -187,16 +198,16 @@ void peformBluetoothReceive() {
           enableRiderEffortUpdates = true;
         }
         
-        Serial.print("enableRiderEffortUpdates: ");
-        Serial.println(enableRiderEffortUpdates);
+        //Serial.print("enableRiderEffortUpdates: ");
+        //Serial.println(enableRiderEffortUpdates);
         break;
         
       case TORQUE_MULTIPLIER_BYTE:
       
         torqueMultiplier = value;
         
-        Serial.print("torqueMultiplier: ");
-        Serial.println(torqueMultiplier);
+        //Serial.print("torqueMultiplier: ");
+        //Serial.println(torqueMultiplier);
         break;
         
       case ENABLE_CURRENT_STRAIN_UPDATES_BYTE:
@@ -208,17 +219,21 @@ void peformBluetoothReceive() {
           enableCurrentStrainUpdates = true;
         }
         
-        Serial.print("currentStrainUpdates: ");
-        Serial.println(currentStrainUpdates);
+        //Serial.print("currentStrainUpdates: ");
+        //Serial.println(enableCurrentStrainUpdates);
+        break;
         
       default:
-        Serial.print("Unknown Identifier: ");
+        /*Serial.print("Unknown Identifier: ");
         Serial.print(identifier, HEX);
         Serial.print(", ");
-        Serial.println(identifier);
+        Serial.println(identifier);*/
+        isValidIdentifier = false;
     }
     
-    performPropertySync(identifier, value);
+    if (isValidIdentifier) {
+      performPropertySync(identifier, value);
+    }
   }
 }
 
@@ -228,6 +243,11 @@ void performPropertySync(byte identifier, uint16_t value) {
   BLEMini.write(identifier);
   BLEMini.write(value);
   BLEMini.write(value >> 8);
+  
+  //Serial.print("Sync value: ");
+  //Serial.println(value);
+  //Serial.print("sync id: ");
+  //Serial.println(identifier);
 }
 
 void performBluetoothSync() {

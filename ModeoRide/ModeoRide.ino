@@ -157,9 +157,9 @@ uint16_t torqueMultiplier = 0;
 uint16_t maxStrainDampingSpeed = 8;
 
 bool enableRiderEffortUpdates = false;
+bool enableCurrentStrainUpdates = false;
 //These aren't used yet, but will need to be.
 bool enableSpeedUpdates = false;
-bool enableStrainUpdates = false;
 bool enableBatteryVoltageUpdates = false;
 
 //float previousStrokeWeights[NUM_AVERAGED_STROKES] = { 0.5f, 1.0f, 0.5f, 1.0f };

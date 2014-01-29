@@ -203,6 +203,7 @@ byte fastTxPointer = 0;
 byte REAL_SPEED_THRESH = 0x04;
 byte VBATT_THRESH = 0xA0;
 
+Sensor sensors[NUM_SENSORS];
 
 AltSoftSerial BLEMini;
 //#define BLEMini Serial
@@ -228,7 +229,7 @@ void setup()
 
   BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
   recalculateStrainDampingMultiplier();
-
+  constructBLESensors();
 }
 
 

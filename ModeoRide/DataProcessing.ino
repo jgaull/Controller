@@ -235,10 +235,34 @@ void handleStrainMessage(byte newStrain) {
   float constrainedEffort = round(constrain(multipliedEffort, 0, MAX_EFFORT));
   byte torque = map(constrainedEffort, 0, MAX_EFFORT, 0, 64);
   
+  //A bunch of shit for sensor managers.
+  float riderEffortSensorValue = constrain(riderEffort, 0, MAX_EFFORT);
+  riderEffortSensorValue = map(riderEffortSensorValue, 0, MAX_EFFORT, 0, UINT16_MAX);
+  sensors[SENSOR_RIDER_EFFORT].value = riderEffortSensorValue;
+  sensors[SENSOR_RIDER_EFFORT].isFresh = true;
+  
+  float currentStrainSensorValue = constrain(currentStrain, 0, MAX_OUTPUT);
+  currentStrainSensorValue = map(currentStrainSensorValue, 0, MAX_OUTPUT, 0, UINT16_MAX);
+  sensors[SENSOR_CURRENT_STRAIN].value = currentStrainSensorValue;
+  sensors[SENSOR_CURRENT_STRAIN].isFresh = true;
+  
+  byte speedSensorValue = map(rxData[DAT_MTR_SPD], 0, 64, 0, UINT16_MAX);
+  sensors[SENSOR_SPEED].value = speedSensorValue;
+  sensors[SENSOR_SPEED].isFresh = true;
+  
+  byte rawStrainSensorValue = map(strainDelta, 0, 64, 0, UINT16_MAX);
+  sensors[SENSOR_RAW_STRAIN].value = 0;
+  sensors[SENSOR_RAW_STRAIN].isFresh = true;
+  
+  byte torqueAppliedSensorValue = map(torque, 0, 64, 0, UINT16_MAX);
+  sensors[SENSOR_TORQUE_APPLIED].value = 0;
+  sensors[SENSOR_TORQUE_APPLIED].isFresh = true;
+  //end a bunch of shit for sensor managers
+  
   Temp_Var_For_Fwd_Twrk_Msg = torque;
  // hasTorqueMessage = true;  //  NOW ALTERNATELY HANDLED BY MEDIUM MESSAGE RX TIMER 
   //for debug.
-  ///*
+  /*
   Serial.print(dampenedStrain);
   Serial.print(",");
   Serial.print(currentStrain);

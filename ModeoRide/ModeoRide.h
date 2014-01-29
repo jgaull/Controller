@@ -29,25 +29,6 @@
 #define SMOOTHING_DIVISOR 65535
 //   END Constants for configuration of the strain characterization algorithm
 
-//Constants for BLE properties
-#define NUM_AVERAGED_STROKES_BYTE 0x1A
-#define MAX_STORED_STROKES_BYTE 0x1B
-#define MAX_STRAIN_DAMPING_SPEED_BYTE 0x1C
-#define MAX_OUTPUT_BYTE 0x1D
-#define STRAIN_DAMPING_CURVE_BYTE 0x1E
-#define STROKE_TIMEOUT_CYCLES_BYTE 0x1F
-#define SMOOTHING_MIN_BYTE 0x2A
-#define SMOOTHING_MAX_BYTE 0x2B
-#define MAX_EFFORT_BYTE 0x2C
-#define ENABLE_RIDER_EFFORT_UPDATES_BYTE 0x2D
-#define TORQUE_MULTIPLIER_BYTE 0x2E
-
-//Values sent from sensors to iOS
-#define RIDER_EFFORT_BYTE 0x0A
-
-//Used to sync iOS to Arduino
-#define SEND_PARAMS_BYTE 0xEE
-
 
 
 
@@ -192,4 +173,10 @@ struct PedalStroke {
   int data[MAX_STROKE_LENGTH];
 };
 
-
+struct Sensor {
+  byte dataIdentifier;
+  byte stateIdentifier;
+  uint16_t value;
+  boolean state;
+  boolean isFresh;
+};

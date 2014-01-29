@@ -33,32 +33,22 @@ void performBluetoothSend(unsigned long now) {
 }
 
 void performBluetoothSend1() {
- // check for switch on and CAN rx code indicating ready to transmit
- /*Serial.print("enableRiderEffortUpdates: ");
- Serial.println(enableRiderEffortUpdates);
- Serial.print("sendBleFlg: ");
- Serial.println(sendBleFlg);*/
- 
-//   if (enableRiderEffortUpdates && sendBleFlg)
- 
-  if (sendBleFlg)
-  {
-    digitalWrite(INDICATOR_LED_PIN, HIGH);
-    float convertedEffort = ((float)riderEffort / (float)MAX_EFFORT) * UINT16_MAX;
-    uint16_t effortValue = constrain(convertedEffort, 0, UINT16_MAX);
-    BLEMini.write(RIDER_EFFORT_BYTE);
-    BLEMini.write(rxData[DAT_RID_TRQ]);
-    BLEMini.write((byte)0x00);
-    
-    sendBleFlg = false;  // clear ready to transmit flag
   
-   Serial.println(rxData[DAT_RID_TRQ]);
-
+  boolean hasSentValue = false;
+  for (byte i = 0; i < NUM_SENSORS; i++) {
+    if ( sensors[i].state && sensors[i].isFresh ) {
+      
+      BLEMini.write(sensors[i].dataIdentifier);
+      BLEMini.write(sensors[i].value);
+      BLEMini.write(sensors[i].value >> 8);
+      
+      sensors[i].isFresh = false;
+      
+      hasSentValue = true;
+    }
   }
-  else
-  {
-    digitalWrite(INDICATOR_LED_PIN, LOW);
-  }
+  
+  digitalWrite(INDICATOR_LED_PIN, hasSentValue);
 }
 
 void writeBLEmsg(byte msgID, byte arrayPointer){
@@ -102,15 +92,40 @@ void peformBluetoothReceive() {
     byte data1 = BLEMini.read();
     byte data2 = BLEMini.read();
     
-    Serial.print("identifier: ");
-    Serial.println(identifier);
-    
     uint16_t value = (data2 << 8) + data1;
     
     if (identifier == SEND_PARAMS_BYTE) {
         performBluetoothSync();
         Serial.println("send params");
         return;
+    }
+    
+    Serial.print("identifier: ");
+    Serial.println(identifier);
+    Serial.print("value: ");
+    Serial.println(value);
+    
+    //Check to see if the identifier is a sensor
+    boolean isSensor = false;
+    for(byte i = 0; i < NUM_SENSORS; i++) {
+      if( identifier == sensors[i].stateIdentifier ) {
+        if (value == 0) {
+          sensors[i].state = false;
+        }
+        else if (value == 1) {
+          sensors[i].state = true;
+        }
+        
+        sensors[i].isFresh = false;
+        isSensor = true;
+        performPropertySync(identifier, value);
+        break;
+      }
+    }
+    
+    //If it was a sensor then hack around the rest of the function
+    if (isSensor) {
+      return;
     }
     
     switch(identifier)
@@ -175,19 +190,6 @@ void peformBluetoothReceive() {
         Serial.println(MAX_EFFORT);
         break;
         
-      case ENABLE_RIDER_EFFORT_UPDATES_BYTE:
-        
-        if (value == 0) {
-          enableRiderEffortUpdates = false;
-        }
-        else if (value == 1) {
-          enableRiderEffortUpdates = true;
-        }
-        
-        Serial.print("enableRiderEffortUpdates: ");
-        Serial.println(enableRiderEffortUpdates);
-        break;
-        
       case TORQUE_MULTIPLIER_BYTE:
       
         torqueMultiplier = value;
@@ -246,13 +248,59 @@ void performBluetoothSync() {
   BLEMini.write(MAX_EFFORT);
   BLEMini.write(MAX_EFFORT >> 8);
   
-  BLEMini.write(ENABLE_RIDER_EFFORT_UPDATES_BYTE);
-  BLEMini.write(enableRiderEffortUpdates);
-  BLEMini.write(enableRiderEffortUpdates >> 8);
-  
   BLEMini.write(TORQUE_MULTIPLIER_BYTE);
   BLEMini.write(torqueMultiplier);
   BLEMini.write(torqueMultiplier >> 8);
+  
+  for (byte i = 0; i < NUM_SENSORS; i++) {
+    BLEMini.write(sensors[i].stateIdentifier);
+    BLEMini.write(sensors[i].state);
+    BLEMini.write(sensors[i].state >> 8);
+  }
+}
+
+void constructBLESensors() {
+  sensors[SENSOR_RIDER_EFFORT].dataIdentifier = RIDER_EFFORT_BYTE;
+  sensors[SENSOR_RIDER_EFFORT].stateIdentifier = ENABLE_RIDER_EFFORT_UPDATES_BYTE;
+  sensors[SENSOR_RIDER_EFFORT].value = 0;
+  sensors[SENSOR_RIDER_EFFORT].state = false;
+  sensors[SENSOR_RIDER_EFFORT].isFresh = false;
+  
+  sensors[SENSOR_CURRENT_STRAIN].dataIdentifier = 0x0B;
+  sensors[SENSOR_CURRENT_STRAIN].stateIdentifier = ENABLE_CURRENT_STRAIN_UPATES_BYTE;
+  sensors[SENSOR_CURRENT_STRAIN].value = 0;
+  sensors[SENSOR_CURRENT_STRAIN].state = false;
+  sensors[SENSOR_CURRENT_STRAIN].isFresh = false;
+  
+  sensors[SENSOR_SPEED].dataIdentifier = 0x0C;
+  sensors[SENSOR_SPEED].stateIdentifier = ENABLE_SPEED_UPDATES_BYTE;
+  sensors[SENSOR_SPEED].value = 0;
+  sensors[SENSOR_SPEED].state = false;
+  sensors[SENSOR_SPEED].isFresh = false;
+  
+  sensors[SENSOR_RAW_STRAIN].dataIdentifier = 0x0D;
+  sensors[SENSOR_RAW_STRAIN].stateIdentifier = ENABLE_RAW_STRAIN_UPDATES_BYTE;
+  sensors[SENSOR_RAW_STRAIN].value = 0;
+  sensors[SENSOR_RAW_STRAIN].state = false;
+  sensors[SENSOR_RAW_STRAIN].isFresh = false;
+  
+  sensors[SENSOR_TORQUE_APPLIED].dataIdentifier = 0x0E;
+  sensors[SENSOR_TORQUE_APPLIED].stateIdentifier = ENABLE_TORQUE_APPLIED_UPDATES_BYTE;
+  sensors[SENSOR_TORQUE_APPLIED].value = 0;
+  sensors[SENSOR_TORQUE_APPLIED].state = false;
+  sensors[SENSOR_TORQUE_APPLIED].isFresh = false;
+  
+  sensors[SENSOR_MOTOR_TEMP].dataIdentifier = 0x0F;
+  sensors[SENSOR_MOTOR_TEMP].stateIdentifier = ENABLE_MOTOR_TEMP_UPDATES_BYTE;
+  sensors[SENSOR_MOTOR_TEMP].value = 0;
+  sensors[SENSOR_MOTOR_TEMP].state = false;
+  sensors[SENSOR_MOTOR_TEMP].isFresh = false;
+  
+  sensors[SENSOR_BATTERY_VOLTAGE].dataIdentifier = 0xAA;
+  sensors[SENSOR_BATTERY_VOLTAGE].stateIdentifier = ENABLE_BATTERY_VOLTAGE_BYTE;
+  sensors[SENSOR_BATTERY_VOLTAGE].value = 0;
+  sensors[SENSOR_BATTERY_VOLTAGE].state = false;
+  sensors[SENSOR_BATTERY_VOLTAGE].isFresh = false;
 }
 
 

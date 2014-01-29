@@ -23,7 +23,7 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 #include <services.h>                 //  boards.h and services.h are old libraries for the fullsize BLE board
 #include <mcp_can.h>                    //  Awesome library for CAN board, specifically traceivers 
 //#include <MemoryFree.h>
-#include <AltSoftSerial.h>    			//  Serial comms library for communication with RedBear BLE Mini
+//#include <AltSoftSerial.h>    			//  Serial comms library for communication with RedBear BLE Mini
 #include <avr/pgmspace.h>
 // END LIBRARIES
 //#include <ble_mini.h>
@@ -87,7 +87,6 @@ unsigned int CycleActionCnt = 0;
 
 
 // State management variables
-bool sendBleFlg = 0;
 bool readyToStart = 1;
 bool EnableCANTX = 0;
 bool EnableBluetoothTX = 0;
@@ -205,15 +204,15 @@ byte VBATT_THRESH = 0xA0;
 
 Sensor sensors[NUM_SENSORS];
 
-AltSoftSerial BLEMini;
-//#define BLEMini Serial
+//AltSoftSerial BLEMini;
+#define BLEMini Serial
 
 
 //  setup() is called at startup
 void setup()
 {
 
-  Serial.begin(9600);    // Enable serial debug
+  //Serial.begin(9600);    // Enable serial debug
 
   pinMode(ON_OFF_SWITCH_PIN, INPUT);
   pinMode(INDICATOR_LED_PIN, OUTPUT);

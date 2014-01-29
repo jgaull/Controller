@@ -1,10 +1,29 @@
 void manageDataProcessing(){
- if(rxDataIsFresh[DAT_RID_TRQ]==1){
-   handleStrainMessage(rxData[DAT_RID_TRQ]);
-   //meadowsFilterAndTorque(rxData[DAT_RID_TRQ]);
-   sendBleFlg = true;
-   rxDataIsFresh[DAT_RID_TRQ]=0;
-   
+  if (rxDataIsFresh[DAT_RID_TRQ]==1) {
+    handleStrainMessage(rxData[DAT_RID_TRQ]);
+    
+    rxDataIsFresh[DAT_RID_TRQ] = false;
+  }
+  
+  if (rxDataIsFresh[DAT_MTR_TMP]) {
+    sensors[SENSOR_MOTOR_TEMP].value = map(rxData[DAT_MTR_TMP], 0, 64, 0, UINT16_MAX);
+    sensors[SENSOR_MOTOR_TEMP].isFresh = true;
+    
+    rxDataIsFresh[DAT_MTR_TMP] = false;
+  }
+  
+  if (rxDataIsFresh[DAT_BAT_VBAT]) {
+    sensors[SENSOR_BATTERY_VOLTAGE].value = map(rxData[DAT_BAT_VBAT], 0, 64, 0, UINT16_MAX);
+    sensors[SENSOR_BATTERY_VOLTAGE].isFresh = true;
+    
+    rxDataIsFresh[DAT_BAT_VBAT] = false;
+  }
+  
+  if (rxDataIsFresh[DAT_MTR_SPD]) {
+    sensors[SENSOR_SPEED].value = map(rxData[DAT_MTR_SPD], 0, 64, 0, UINT16_MAX);
+    sensors[SENSOR_SPEED].isFresh = true;
+    
+    rxDataIsFresh[DAT_MTR_SPD] = false;
   }
  
 }
@@ -245,10 +264,6 @@ void handleStrainMessage(byte newStrain) {
   currentStrainSensorValue = map(currentStrainSensorValue, 0, MAX_OUTPUT, 0, UINT16_MAX);
   sensors[SENSOR_CURRENT_STRAIN].value = currentStrainSensorValue;
   sensors[SENSOR_CURRENT_STRAIN].isFresh = true;
-  
-  byte speedSensorValue = map(rxData[DAT_MTR_SPD], 0, 64, 0, UINT16_MAX);
-  sensors[SENSOR_SPEED].value = speedSensorValue;
-  sensors[SENSOR_SPEED].isFresh = true;
   
   byte rawStrainSensorValue = map(strainDelta, 0, 64, 0, UINT16_MAX);
   sensors[SENSOR_RAW_STRAIN].value = 0;

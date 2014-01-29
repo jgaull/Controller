@@ -36,6 +36,12 @@ void performBluetoothSend1() {
   
   boolean hasSentValue = false;
   for (byte i = 0; i < NUM_SENSORS; i++) {
+    
+    /*Serial.print("state: ");
+    Serial.println(sensors[i].state);
+    Serial.print("isFresh: ");
+    Serial.println(sensors[i].isFresh);*/
+    
     if ( sensors[i].state && sensors[i].isFresh ) {
       
       BLEMini.write(sensors[i].dataIdentifier);
@@ -81,10 +87,10 @@ void writeBLEmsg(byte msgID, byte arrayPointer){
 
 void peformBluetoothReceive() {
   
-  if (BLEMini.available() > 0) {
+  /*if (BLEMini.available() > 0) {
     Serial.print("Available: ");
     Serial.println(BLEMini.available());
-  }
+  }*/
   
   while ( BLEMini.available() )
   {
@@ -96,14 +102,14 @@ void peformBluetoothReceive() {
     
     if (identifier == SEND_PARAMS_BYTE) {
         performBluetoothSync();
-        Serial.println("send params");
+        //Serial.println("send params");
         return;
     }
     
-    Serial.print("identifier: ");
+    /*Serial.print("identifier: ");
     Serial.println(identifier);
     Serial.print("value: ");
-    Serial.println(value);
+    Serial.println(value);*/
     
     //Check to see if the identifier is a sensor
     boolean isSensor = false;
@@ -134,16 +140,16 @@ void peformBluetoothReceive() {
       
         SMOOTHING_MIN = value;
         
-        Serial.print("smoothingMin: ");
-        Serial.println(SMOOTHING_MIN);
+        //Serial.print("smoothingMin: ");
+        //Serial.println(SMOOTHING_MIN);
         break;
         
       case SMOOTHING_MAX_BYTE:
       
         SMOOTHING_MAX = value;
         
-        Serial.print("smoothingMax: ");
-        Serial.println(SMOOTHING_MAX);
+        //Serial.print("smoothingMax: ");
+        //Serial.println(SMOOTHING_MAX);
         break;
       
       case MAX_OUTPUT_BYTE:
@@ -151,8 +157,8 @@ void peformBluetoothReceive() {
         MAX_OUTPUT = value;
         recalculateStrainDampingMultiplier();
         
-        Serial.print("maxOutput: ");
-        Serial.println(MAX_OUTPUT);
+        //Serial.print("maxOutput: ");
+        //Serial.println(MAX_OUTPUT);
         break;
         
       case MAX_STRAIN_DAMPING_SPEED_BYTE:
@@ -160,8 +166,8 @@ void peformBluetoothReceive() {
         maxStrainDampingSpeed = value;
         recalculateStrainDampingMultiplier();
         
-        Serial.print("maxInput: ");
-        Serial.println(maxStrainDampingSpeed);
+        //Serial.print("maxInput: ");
+        //Serial.println(maxStrainDampingSpeed);
         break;
         
       case STRAIN_DAMPING_CURVE_BYTE:
@@ -170,39 +176,39 @@ void peformBluetoothReceive() {
         STRAIN_DAMPING_CURVE = value;
         recalculateStrainDampingMultiplier();
         
-        Serial.print("strainDampingCurve: ");
-        Serial.println(STRAIN_DAMPING_CURVE);
+        //Serial.print("strainDampingCurve: ");
+        //Serial.println(STRAIN_DAMPING_CURVE);
         break;
       
       case STROKE_TIMEOUT_CYCLES_BYTE:
       
         STROKE_TIMEOUT_CYCLES = value;
         
-        Serial.print("strokeTimeoutCycles: ");
-        Serial.println(STROKE_TIMEOUT_CYCLES);
+        //Serial.print("strokeTimeoutCycles: ");
+        //Serial.println(STROKE_TIMEOUT_CYCLES);
         break;
         
       case MAX_EFFORT_BYTE:
       
         MAX_EFFORT = value;
         
-        Serial.print("maxEffort: ");
-        Serial.println(MAX_EFFORT);
+        //Serial.print("maxEffort: ");
+        //Serial.println(MAX_EFFORT);
         break;
         
       case TORQUE_MULTIPLIER_BYTE:
       
         torqueMultiplier = value;
         
-        Serial.print("torqueMultiplier: ");
-        Serial.println(torqueMultiplier);
+        //Serial.print("torqueMultiplier: ");
+        //Serial.println(torqueMultiplier);
         break;
         
-      default:
+      /*default:
         Serial.print("Unknown Identifier: ");
         Serial.print(identifier, HEX);
         Serial.print(", ");
-        Serial.println(identifier);
+        Serial.println(identifier);*/
     }
     
     performPropertySync(identifier, value);

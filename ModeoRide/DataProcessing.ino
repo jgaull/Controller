@@ -63,17 +63,71 @@ else{
  */
 }
 
-
- 
- 
- 
- 
-  
-
-void recalculateStrainDampingMultiplier() {
+/*void recalculateStrainDampingMultiplier() {
   strainDampingMultiplier = MAX_DAMPING_MULTIPLIER / sqrt(pow(maxStrainDampingSpeed, ((float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX) * 2));
   Serial.print("strainDampingMultiplier: ");
   Serial.println(strainDampingMultiplier, 5);
+}*/
+
+void rebuildStrainDampingCurve() {
+  point sensitivity1 = { 0, 1 };
+  point sensitivity2 = { 0, 0 };
+  point sensitivity3 = { 1, 1 };
+  point sensitivity4 = { 1, 0 };
+  
+  point lowResolutionCurve[RESOLUTION];
+
+  for (int i=0; i < RESOLUTION; ++i)
+  {
+    point p;
+    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
+    bezier(p, sensitivity1, sensitivity2, sensitivity3, sensitivity4, t);
+    lowResolutionCurve[i] = p;
+  }
+  
+  for (int i = 0; i < RESOLUTION - 1; i++)
+  {
+    point curveSegment1 = lowResolutionCurve[i];
+    point curveSegment2 = lowResolutionCurve[i + 1];
+    
+    //Serial.println(doesLineIntersectWithLine(curveSegment1, curveSegment2, speed1, speed2));
+  }
+}
+
+// simple linear interpolation between two points
+void lerp(point &dest, const point &a, const point &b, const float t)
+{
+    dest.x = a.x + (b.x-a.x)*t;
+    dest.y = a.y + (b.y-a.y)*t;
+}
+
+// evaluate a point on a bezier-curve. t goes from 0 to 1.0
+void bezier(point &dest, const point& a, const point& b, const point& c, const point& d, const float t)
+{
+    point ab,bc,cd,abbc,bccd;
+    lerp(ab, a,b,t);           // point between a and b (green)
+    lerp(bc, b,c,t);           // point between b and c (green)
+    lerp(cd, c,d,t);           // point between c and d (green)
+    lerp(abbc, ab,bc,t);       // point between ab and bc (blue)
+    lerp(bccd, bc,cd,t);       // point between bc and cd (blue)
+    lerp(dest, abbc,bccd,t);   // point on the bezier-curve (black)
+}
+
+boolean doesLineIntersectWithLine(point &p1, point &p2, point &p3, point &p4)
+{
+    float d = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
+    if (d == 0)
+        return false; // parallel lines
+        
+    float u = ((p3.x - p1.x)*(p4.y - p3.y) - (p3.y - p1.y)*(p4.x - p3.x))/d;
+    float v = ((p3.x - p1.x)*(p2.y - p1.y) - (p3.y - p1.y)*(p2.x - p1.x))/d;
+    
+    if (u < 0.0 || u > 1.0)
+        return false; // intersection point not between p1 and p2
+    if (v < 0.0 || v > 1.0)
+        return false; // intersection point not between p3 and p4
+    
+    return true;
 }
 
 

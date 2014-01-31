@@ -165,6 +165,11 @@ uint16_t MAX_EFFORT = 100;
 uint16_t torqueMultiplier = 100;
 uint16_t maxStrainDampingSpeed = 8;
 
+uint16_t strainDampingControl1X = 0;
+uint16_t strainDampingControl1Y = 0;
+uint16_t strainDampingControl2X = UINT16_MAX;
+uint16_t strainDampingControl2Y = UINT16_MAX;
+
 bool enableRiderEffortUpdates = false;
 //These aren't used yet, but will need to be.
 bool enableSpeedUpdates = false;

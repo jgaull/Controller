@@ -24,9 +24,10 @@
 
 //  Constants for configuration of the strain characterization algorithm
 #define NUM_AVERAGED_STROKES 3
-#define MAX_STORED_STROKES 6
+#define MAX_STORED_STROKES 3
 #define MAX_DAMPING_MULTIPLIER 1
 #define SMOOTHING_DIVISOR 65535
+#define RESOLUTION 100
 //   END Constants for configuration of the strain characterization algorithm
 
 
@@ -179,4 +180,10 @@ struct Sensor {
   uint16_t value;
   boolean state;
   boolean isFresh;
+};
+
+ struct point
+{
+    float x;
+    float y;
 };

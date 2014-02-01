@@ -23,7 +23,7 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 #include <services.h>                 //  boards.h and services.h are old libraries for the fullsize BLE board
 #include <mcp_can.h>                    //  Awesome library for CAN board, specifically traceivers 
 //#include <MemoryFree.h>
-//#include <AltSoftSerial.h>    			//  Serial comms library for communication with RedBear BLE Mini
+#include <AltSoftSerial.h>    			//  Serial comms library for communication with RedBear BLE Mini
 #include <avr/pgmspace.h>
 // END LIBRARIES
 //#include <ble_mini.h>
@@ -204,15 +204,15 @@ byte VBATT_THRESH = 0xA0;
 
 Sensor sensors[NUM_SENSORS];
 
-//AltSoftSerial BLEMini;
-#define BLEMini Serial
+AltSoftSerial BLEMini;
+//#define BLEMini Serial
 
 
 //  setup() is called at startup
 void setup()
 {
 
-  //Serial.begin(9600);    // Enable serial debug
+  Serial.begin(9600);    // Enable serial debug
 
   pinMode(ON_OFF_SWITCH_PIN, INPUT);
   pinMode(INDICATOR_LED_PIN, OUTPUT);
@@ -229,6 +229,7 @@ void setup()
   BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
   recalculateStrainDampingMultiplier();
   constructBLESensors();
+  Serial.println("SETUP COMPLETE");
 }
 
 
@@ -247,7 +248,7 @@ void loop()
 
   performBluetoothSend1();
 
-  peformBluetoothReceive();
+  performBluetoothReceive();
 
 
   performPeriodicMessageSend(now);
@@ -258,6 +259,7 @@ void loop()
   //performSerialDebugging();
 
   manageActionCounter();
+ 
 }
 
 void performSerialDebugging() {
@@ -303,6 +305,7 @@ void manageVehicleState(bool switchValue) {
     EnableCANTX = 1;
     EnableBluetoothTX = 1;
     EnableBluetoothRX = 1;
+    Serial.println("ACTIVATE BIONX COMPLETE");
   }
   else if (readyToStart == 0 && switchValue == LOW)
   {
@@ -311,6 +314,7 @@ void manageVehicleState(bool switchValue) {
     EnableCANTX = 0;
     EnableBluetoothTX = 0;
     EnableBluetoothRX = 0;
+     Serial.println("SHURTDOWN BIONX COMPLETE");
   }
 }
 

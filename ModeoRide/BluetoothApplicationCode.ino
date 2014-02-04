@@ -85,14 +85,14 @@ void writeBLEmsg(byte msgID, byte arrayPointer){
 
 
 
-void peformBluetoothReceive() {
+void performBluetoothReceive() {
   
   /*if (BLEMini.available() > 0) {
     Serial.print("Available: ");
     Serial.println(BLEMini.available());
   }*/
   
-  while ( BLEMini.available() )
+  if ( BLEMini.available() == 3 )
   {
     byte identifier = BLEMini.read();
     byte data1 = BLEMini.read();
@@ -101,15 +101,18 @@ void peformBluetoothReceive() {
     uint16_t value = (data2 << 8) + data1;
     
     if (identifier == SEND_PARAMS_BYTE) {
-        performBluetoothSync();
+      for(byte i = 0; i < NUM_SENSORS; i++) {
+      sensors[i].state = false;
+      }
+      performBluetoothSync();
         //Serial.println("send params");
         return;
     }
     
-    /*Serial.print("identifier: ");
+    Serial.print("identifier: ");
     Serial.println(identifier);
     Serial.print("value: ");
-    Serial.println(value);*/
+    Serial.println(value);
     
     //Check to see if the identifier is a sensor
     boolean isSensor = false;
@@ -221,48 +224,58 @@ void performPropertySync(byte identifier, uint16_t value) {
   BLEMini.write(identifier);
   BLEMini.write(value);
   BLEMini.write(value >> 8);
+  Serial.print("   SYNCED: ");  
+    Serial.println(identifier);  
 }
 
 void performBluetoothSync() {
   digitalWrite(INDICATOR_LED_PIN, HIGH);
+    Serial.println(micros());
+    Serial.println("   SYNC START");
+   // Serial.println(identifier);
+  
   
   BLEMini.write(SMOOTHING_MIN_BYTE);
   BLEMini.write(SMOOTHING_MIN);
   BLEMini.write(SMOOTHING_MIN >> 8);
+  delay(1);
   
   BLEMini.write(SMOOTHING_MAX_BYTE);
   BLEMini.write(SMOOTHING_MAX);
   BLEMini.write(SMOOTHING_MAX >> 8);
-  
+  delay(1);  
   BLEMini.write(MAX_OUTPUT_BYTE);
   BLEMini.write(MAX_OUTPUT);
   BLEMini.write(MAX_OUTPUT >> 8);
-  
+    delay(1);
   BLEMini.write(MAX_STRAIN_DAMPING_SPEED_BYTE);
   BLEMini.write(maxStrainDampingSpeed);
   BLEMini.write(maxStrainDampingSpeed >> 8);
-  
+    delay(1);
   BLEMini.write(STRAIN_DAMPING_CURVE_BYTE);
   BLEMini.write(STRAIN_DAMPING_CURVE);
   BLEMini.write(STRAIN_DAMPING_CURVE >> 8);
-  
+    delay(1);
   BLEMini.write(STROKE_TIMEOUT_CYCLES_BYTE);
   BLEMini.write(STROKE_TIMEOUT_CYCLES);
   BLEMini.write(STROKE_TIMEOUT_CYCLES >> 8);
-  
+    delay(1);
   BLEMini.write(MAX_EFFORT_BYTE);
   BLEMini.write(MAX_EFFORT);
   BLEMini.write(MAX_EFFORT >> 8);
-  
+    delay(1);
   BLEMini.write(TORQUE_MULTIPLIER_BYTE);
   BLEMini.write(torqueMultiplier);
   BLEMini.write(torqueMultiplier >> 8);
-  
+    delay(1);
   for (byte i = 0; i < NUM_SENSORS; i++) {
     BLEMini.write(sensors[i].stateIdentifier);
     BLEMini.write(sensors[i].state);
     BLEMini.write(sensors[i].state >> 8);
+  delay(1);
   }
+        Serial.println(micros());
+      Serial.println("  SYNC END");
 }
 
 void constructBLESensors() {

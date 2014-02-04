@@ -63,11 +63,11 @@ else{
  */
 }
 
-/*void recalculateStrainDampingMultiplier() {
-  strainDampingMultiplier = MAX_DAMPING_MULTIPLIER / sqrt(pow(maxStrainDampingSpeed, ((float)STRAIN_DAMPING_CURVE/(float)UINT16_MAX) * 2));
+void recalculateStrainDampingMultiplier() {
+  strainDampingMultiplier = MAX_DAMPING_MULTIPLIER / sqrt(pow(properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value, ((float)properties[PROPERTY_STRAIN_DAMPING_CURVE].value/(float)UINT16_MAX) * 2));
   Serial.print("strainDampingMultiplier: ");
   Serial.println(strainDampingMultiplier, 5);
-}*/
+}
 
 void rebuildStrainDampingCurve() {
   point sensitivity1 = { 0, 1 };
@@ -286,36 +286,36 @@ void handleStrainMessage(byte newStrain) {
   strainDiff = abs(strainDiff);
   
   //Map will allow values above and below the max. I'm currently leaving them unconstrained.
-  float filterAmount = map(MAX_OUTPUT - strainDiff, 0, MAX_OUTPUT, SMOOTHING_MIN, SMOOTHING_MAX);
+  float filterAmount = map(properties[PROPERTY_MAX_OUTPUT].value - strainDiff, 0, properties[PROPERTY_MAX_OUTPUT].value, properties[PROPERTY_SMOOTHING_MIN].value, properties[PROPERTY_SMOOTHING_MAX].value);
   filterAmount /= (float)SMOOTHING_DIVISOR; //because map only works with round numbers.
   
   byte filterMultiplier = 1;
-  if (cyclesSinceLastStroke > STROKE_TIMEOUT_CYCLES) {
+  if (cyclesSinceLastStroke > properties[PROPERTY_STROKE_TIMEOUT_CYCLES].value) {
     filterMultiplier = 0;
   }
   
   filterAmount *= filterMultiplier;
   
-  float strainDampingExponent = ((float)STRAIN_DAMPING_CURVE / (float)UINT16_MAX) * 2;
+  float strainDampingExponent = ((float)properties[PROPERTY_STRAIN_DAMPING_CURVE].value / (float)UINT16_MAX) * 2;
   float strainDamping = sqrt(pow(rxData[DAT_MTR_SPD], strainDampingExponent)) * strainDampingMultiplier;
   
   strainDamping = constrain(strainDamping, 0, MAX_DAMPING_MULTIPLIER);
   float dampenedStrain = currentStrain * strainDamping;
   riderEffort = smooth(dampenedStrain, riderEffort, filterAmount);
   
-  float multiplier = ((float)torqueMultiplier / (float)UINT16_MAX) * 2;
+  float multiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
   float multipliedEffort = multiplier * riderEffort;
-  float constrainedEffort = round(constrain(multipliedEffort, 0, MAX_EFFORT));
-  byte torque = map(constrainedEffort, 0, MAX_EFFORT, 0, 64);
+  float constrainedEffort = round(constrain(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value));
+  byte torque = map(constrainedEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
   
   //A bunch of shit for sensor managers.
-  float riderEffortSensorValue = constrain(riderEffort, 0, MAX_EFFORT);
-  riderEffortSensorValue = map(riderEffortSensorValue, 0, MAX_EFFORT, 0, UINT16_MAX);
+  float riderEffortSensorValue = constrain(riderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
+  riderEffortSensorValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
   sensors[SENSOR_RIDER_EFFORT].value = riderEffortSensorValue;
   sensors[SENSOR_RIDER_EFFORT].isFresh = true;
   
-  float currentStrainSensorValue = constrain(currentStrain, 0, MAX_OUTPUT);
-  currentStrainSensorValue = map(currentStrainSensorValue, 0, MAX_OUTPUT, 0, UINT16_MAX);
+  float currentStrainSensorValue = constrain(currentStrain, 0, properties[PROPERTY_MAX_OUTPUT].value);
+  currentStrainSensorValue = map(currentStrainSensorValue, 0, properties[PROPERTY_MAX_OUTPUT].value, 0, UINT16_MAX);
   sensors[SENSOR_CURRENT_STRAIN].value = currentStrainSensorValue;
   sensors[SENSOR_CURRENT_STRAIN].isFresh = true;
   

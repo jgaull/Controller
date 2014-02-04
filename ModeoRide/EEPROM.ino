@@ -2,9 +2,13 @@ void retrieveCalibrations(){
 
    Serial.print(micros());
  Serial.println("   Started cal restore");
+ 
+ for (byte i = 0; i < NUM_PROPERTIES; i++) {
+   properties[i].value = (EEPROM.read(properties[i].eepMSB) << 8) + EEPROM.read(properties[i].eepLSB);
+ }
 
   
-  SMOOTHING_MIN = (EEPROM.read(EEP_SMOOTHING_MIN_MSB) << 8)+ EEPROM.read(EEP_SMOOTHING_MIN_LSB);
+  /*SMOOTHING_MIN = (EEPROM.read(EEP_SMOOTHING_MIN_MSB) << 8)+ EEPROM.read(EEP_SMOOTHING_MIN_LSB);
   
   SMOOTHING_MAX =  (EEPROM.read(EEP_SMOOTHING_MAX_MSB) << 8)+ EEPROM.read(EEP_SMOOTHING_MAX_LSB);
   
@@ -18,19 +22,24 @@ void retrieveCalibrations(){
   
   MAX_EFFORT =  (EEPROM.read(EEP_MAXEFFORT_MSB) << 8)+ EEPROM.read(EEP_MAXEFFORT_LSB);
   
-  torqueMultiplier =  (EEPROM.read(EEP_TRQ_MULT_MSB) << 8)+ EEPROM.read(EEP_TRQ_MULT_LSB);
+  torqueMultiplier =  (EEPROM.read(EEP_TRQ_MULT_MSB) << 8)+ EEPROM.read(EEP_TRQ_MULT_LSB);*/
 
  Serial.print(micros());
- Serial.println("   Finishe  cal restore");
+ Serial.println("   Finished cal restore");
 
 }
 
 
 void storeCalibrations(){
-
- Serial.print(micros());
- Serial.println("   Started cal save");
+  Serial.print(micros());
+  Serial.println("   Started cal save");
   
+  for (byte i = 0; i < NUM_PROPERTIES; i++) {
+    EEPROM.write(properties[i].eepMSB, properties[i].value >> 8);
+    EEPROM.write(properties[i].eepLSB, properties[i].value);
+  }
+  
+  /*
   EEPROM.write(EEP_SMOOTHING_MIN_MSB, (SMOOTHING_MIN >> 8));
   EEPROM.write(EEP_SMOOTHING_MIN_LSB, (SMOOTHING_MIN));
 
@@ -54,6 +63,7 @@ void storeCalibrations(){
 
   EEPROM.write(EEP_TRQ_MULT_MSB, (torqueMultiplier >> 8));
   EEPROM.write(EEP_TRQ_MULT_LSB, (torqueMultiplier));
+  */
 
  Serial.print(micros());
  Serial.println("   Finished cal save");

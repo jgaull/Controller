@@ -182,6 +182,13 @@ struct Sensor {
   boolean isFresh;
 };
 
+struct Property {
+  uint16_t value;
+  byte bleIdentifier;
+  byte eepLSB;
+  byte eepMSB;
+};
+
  struct point
 {
     float x;

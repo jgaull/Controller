@@ -153,30 +153,10 @@ byte strokesLength = 0;
 byte strokeId = 0;
 byte cyclesSinceLastStroke = 0;
 
-//Tuning Parameters
-//These look like constants right now, but that will change.
-uint16_t SMOOTHING_MIN = 58982; //The map function only works with whole numbers...
-uint16_t SMOOTHING_MAX = 64224;
-uint16_t MAX_OUTPUT = 150;
-uint16_t MAX_INPUT = 150;
-uint16_t STRAIN_DAMPING_CURVE = 117963; //Must be > 0 and < 2. Smaller number means steeper curve and more aggressive damping.
-uint16_t STROKE_TIMEOUT_CYCLES = 40;
-uint16_t MAX_EFFORT = 100;
-uint16_t torqueMultiplier = 100;
-uint16_t maxStrainDampingSpeed = 8;
-
 uint16_t strainDampingControl1X = 0;
 uint16_t strainDampingControl1Y = 0;
 uint16_t strainDampingControl2X = UINT16_MAX;
 uint16_t strainDampingControl2Y = UINT16_MAX;
-
-bool enableRiderEffortUpdates = false;
-//These aren't used yet, but will need to be.
-bool enableSpeedUpdates = false;
-bool enableStrainUpdates = false;
-bool enableBatteryVoltageUpdates = false;
-
-//float previousStrokeWeights[NUM_AVERAGED_STROKES] = { 0.5f, 1.0f, 0.5f, 1.0f };
 
 float riderEffort = 0;
 
@@ -208,6 +188,7 @@ byte REAL_SPEED_THRESH = 0x04;
 byte VBATT_THRESH = 0xA0;
 
 Sensor sensors[NUM_SENSORS];
+Property properties[NUM_PROPERTIES];
 
 AltSoftSerial BLEMini;
 //#define BLEMini Serial
@@ -232,8 +213,11 @@ void setup()
   CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx system
 
   BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
+  
   recalculateStrainDampingMultiplier();
   constructBLESensors();
+  constructBLEProperties();
+  
   Serial.println("SETUP COMPLETE");
 }
 

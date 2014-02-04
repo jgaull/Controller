@@ -137,84 +137,27 @@ void performBluetoothReceive() {
       return;
     }
     
-    switch(identifier)
-    {
-      case SMOOTHING_MIN_BYTE:
-      
-        SMOOTHING_MIN = value;
+    for (byte i = 0; i < NUM_PROPERTIES; i++) {
+      if (identifier == properties[i].bleIdentifier) {
+        properties[i].value = value;
         
-        //Serial.print("smoothingMin: ");
-        //Serial.println(SMOOTHING_MIN);
+        Serial.print("Property: ");
+        Serial.println(i);
+        Serial.print("Value: ");
+        Serial.println(value);
+        
+        switch(i) {
+          case PROPERTY_MAX_OUTPUT:
+          case PROPERTY_STRAIN_DAMPING_CURVE:
+          case PROPERTY_MAX_STRAIN_DAMPING_SPEED:
+            recalculateStrainDampingMultiplier();
+            break;
+        }
+        
+        performPropertySync(identifier, value);
         break;
-        
-      case SMOOTHING_MAX_BYTE:
-      
-        SMOOTHING_MAX = value;
-        
-        //Serial.print("smoothingMax: ");
-        //Serial.println(SMOOTHING_MAX);
-        break;
-      
-      case MAX_OUTPUT_BYTE:
-      
-        MAX_OUTPUT = value;
-        recalculateStrainDampingMultiplier();
-        
-        //Serial.print("maxOutput: ");
-        //Serial.println(MAX_OUTPUT);
-        break;
-        
-      case MAX_STRAIN_DAMPING_SPEED_BYTE:
-      
-        maxStrainDampingSpeed = value;
-        recalculateStrainDampingMultiplier();
-        
-        //Serial.print("maxInput: ");
-        //Serial.println(maxStrainDampingSpeed);
-        break;
-        
-      case STRAIN_DAMPING_CURVE_BYTE:
-      
-        //STRAIN_DAMPING_CURVE = ((float)value / (float)UINT16_MAX) * 2;
-        STRAIN_DAMPING_CURVE = value;
-        recalculateStrainDampingMultiplier();
-        
-        //Serial.print("strainDampingCurve: ");
-        //Serial.println(STRAIN_DAMPING_CURVE);
-        break;
-      
-      case STROKE_TIMEOUT_CYCLES_BYTE:
-      
-        STROKE_TIMEOUT_CYCLES = value;
-        
-        //Serial.print("strokeTimeoutCycles: ");
-        //Serial.println(STROKE_TIMEOUT_CYCLES);
-        break;
-        
-      case MAX_EFFORT_BYTE:
-      
-        MAX_EFFORT = value;
-        
-        //Serial.print("maxEffort: ");
-        //Serial.println(MAX_EFFORT);
-        break;
-        
-      case TORQUE_MULTIPLIER_BYTE:
-      
-        torqueMultiplier = value;
-        
-        //Serial.print("torqueMultiplier: ");
-        //Serial.println(torqueMultiplier);
-        break;
-        
-      /*default:
-        Serial.print("Unknown Identifier: ");
-        Serial.print(identifier, HEX);
-        Serial.print(", ");
-        Serial.println(identifier);*/
+      }
     }
-    
-    performPropertySync(identifier, value);
   }
 }
 
@@ -230,52 +173,30 @@ void performPropertySync(byte identifier, uint16_t value) {
 
 void performBluetoothSync() {
   digitalWrite(INDICATOR_LED_PIN, HIGH);
-    Serial.println(micros());
-    Serial.println("   SYNC START");
-   // Serial.println(identifier);
+  /*Serial.println(micros());
+  Serial.println("   SYNC START");
+  Serial.println(identifier);*/
   
+  for (byte i = 0; i < NUM_PROPERTIES; i++) {
+    BLEMini.write(properties[i].bleIdentifier);
+    BLEMini.write(properties[i].value);
+    BLEMini.write(properties[i].value >> 8);
+    delay(1);
+  }
   
-  BLEMini.write(SMOOTHING_MIN_BYTE);
-  BLEMini.write(SMOOTHING_MIN);
-  BLEMini.write(SMOOTHING_MIN >> 8);
-  delay(1);
-  
-  BLEMini.write(SMOOTHING_MAX_BYTE);
-  BLEMini.write(SMOOTHING_MAX);
-  BLEMini.write(SMOOTHING_MAX >> 8);
-  delay(1);  
-  BLEMini.write(MAX_OUTPUT_BYTE);
-  BLEMini.write(MAX_OUTPUT);
-  BLEMini.write(MAX_OUTPUT >> 8);
-    delay(1);
-  BLEMini.write(MAX_STRAIN_DAMPING_SPEED_BYTE);
-  BLEMini.write(maxStrainDampingSpeed);
-  BLEMini.write(maxStrainDampingSpeed >> 8);
-    delay(1);
-  BLEMini.write(STRAIN_DAMPING_CURVE_BYTE);
-  BLEMini.write(STRAIN_DAMPING_CURVE);
-  BLEMini.write(STRAIN_DAMPING_CURVE >> 8);
-    delay(1);
-  BLEMini.write(STROKE_TIMEOUT_CYCLES_BYTE);
-  BLEMini.write(STROKE_TIMEOUT_CYCLES);
-  BLEMini.write(STROKE_TIMEOUT_CYCLES >> 8);
-    delay(1);
-  BLEMini.write(MAX_EFFORT_BYTE);
-  BLEMini.write(MAX_EFFORT);
-  BLEMini.write(MAX_EFFORT >> 8);
-    delay(1);
-  BLEMini.write(TORQUE_MULTIPLIER_BYTE);
-  BLEMini.write(torqueMultiplier);
-  BLEMini.write(torqueMultiplier >> 8);
-    delay(1);
   for (byte i = 0; i < NUM_SENSORS; i++) {
+    sensors[i].state = false; //when we're performing a sync then we reset the sensors.
+    
     BLEMini.write(sensors[i].stateIdentifier);
     BLEMini.write(sensors[i].state);
     BLEMini.write(sensors[i].state >> 8);
-  delay(1);
+    delay(1);
   }
-        Serial.println(micros());
-      Serial.println("  SYNC END");
+  
+  /*
+  Serial.println(micros());
+  Serial.println("  SYNC END");
+  */
 }
 
 void constructBLESensors() {
@@ -320,6 +241,48 @@ void constructBLESensors() {
   sensors[SENSOR_BATTERY_VOLTAGE].value = 0;
   sensors[SENSOR_BATTERY_VOLTAGE].state = false;
   sensors[SENSOR_BATTERY_VOLTAGE].isFresh = false;
+}
+
+void constructBLEProperties() {
+  properties[PROPERTY_SMOOTHING_MIN].value = 0;
+  properties[PROPERTY_SMOOTHING_MIN].bleIdentifier = SMOOTHING_MIN_BYTE;
+  properties[PROPERTY_SMOOTHING_MIN].eepMSB = EEP_SMOOTHING_MIN_MSB;
+  properties[PROPERTY_SMOOTHING_MIN].eepLSB = EEP_SMOOTHING_MIN_LSB;
+  
+  properties[PROPERTY_SMOOTHING_MAX].value = 0;
+  properties[PROPERTY_SMOOTHING_MAX].bleIdentifier = SMOOTHING_MAX_BYTE;
+  properties[PROPERTY_SMOOTHING_MAX].eepMSB = EEP_SMOOTHING_MAX_MSB;
+  properties[PROPERTY_SMOOTHING_MAX].eepLSB = EEP_SMOOTHING_MAX_LSB;
+  
+  properties[PROPERTY_MAX_OUTPUT].value = 0;
+  properties[PROPERTY_MAX_OUTPUT].bleIdentifier = MAX_OUTPUT_BYTE;
+  properties[PROPERTY_MAX_OUTPUT].eepMSB = EEP_MAX_OUTPUT_MSB;
+  properties[PROPERTY_MAX_OUTPUT].eepLSB = EEP_MAX_OUTPUT_LSB;
+  
+  properties[PROPERTY_STRAIN_DAMPING_CURVE].value = 0;
+  properties[PROPERTY_STRAIN_DAMPING_CURVE].bleIdentifier = STRAIN_DAMPING_CURVE_BYTE;
+  properties[PROPERTY_STRAIN_DAMPING_CURVE].eepMSB = EEP_STRAINDAMPCURVE_MSB;
+  properties[PROPERTY_STRAIN_DAMPING_CURVE].eepLSB = EEP_MAXSTRAINDAMP_LSB;
+  
+  properties[PROPERTY_STROKE_TIMEOUT_CYCLES].value = 0;
+  properties[PROPERTY_STROKE_TIMEOUT_CYCLES].bleIdentifier = STROKE_TIMEOUT_CYCLES_BYTE;
+  properties[PROPERTY_STROKE_TIMEOUT_CYCLES].eepMSB = EEP_STROKETIMOUTCYC_MSB;
+  properties[PROPERTY_STROKE_TIMEOUT_CYCLES].eepLSB = EEP_STROKETIMOUTCYC_LSB;
+  
+  properties[PROPERTY_MAX_EFFORT].value = 0;
+  properties[PROPERTY_MAX_EFFORT].bleIdentifier = MAX_EFFORT_BYTE;
+  properties[PROPERTY_MAX_EFFORT].eepMSB = EEP_MAXEFFORT_MSB;
+  properties[PROPERTY_MAX_EFFORT].eepLSB = EEP_MAXEFFORT_LSB;
+  
+  properties[PROPERTY_TORQUE_MULTIPLIER].value = 0;
+  properties[PROPERTY_TORQUE_MULTIPLIER].bleIdentifier = TORQUE_MULTIPLIER_BYTE;
+  properties[PROPERTY_TORQUE_MULTIPLIER].eepMSB = EEP_TRQ_MULT_MSB;
+  properties[PROPERTY_TORQUE_MULTIPLIER].eepLSB = EEP_TRQ_MULT_LSB;
+  
+  properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value = 0;
+  properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].bleIdentifier = MAX_STRAIN_DAMPING_SPEED_BYTE;
+  properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].eepMSB = EEP_MAXSTRAINDAMP_MSB;
+  properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].eepLSB = EEP_MAXSTRAINDAMP_LSB;
 }
 
 

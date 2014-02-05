@@ -12,8 +12,6 @@ void performCANRX() {
         if (pgm_read_byte(&(RX_IDS[rxPointer])) == rxBuf[1]) {
           rxData[rxPointer] = rxBuf[3];
           rxDataIsFresh[rxPointer] = 1;
-          Serial.print("rxBuf[1] = ");
-          Serial.println(rxBuf[1], HEX);
           break;
         }
       }
@@ -70,6 +68,7 @@ void performPeriodicMessageSend(unsigned long now) {
   Serial.println(fastTxFlag);
   Serial.print("mediumTxFlag = ");
   Serial.println(mediumTxFlag);*/
+  
   if (fastTxFlag && EnableCANTX)
   {
     if (fastTxPointer < (sizeof(fastTxMsgs) / sizeof(fastTxMsgs[0]))) {
@@ -84,15 +83,15 @@ void performPeriodicMessageSend(unsigned long now) {
     }
   }
 
-  else if (trqCmdTxFlag && EnableCANTX)
+  if (trqCmdTxFlag && EnableCANTX)
   {
     unsigned char txBuf[4] = {0, 0x09, Temp_Var_For_Fwd_Twrk_UpperByte, Temp_Var_For_Fwd_Twrk_Msg};
     CAN.sendMsgBuf(0x20, 0, 0x04, txBuf);
     trqCmdTxFlag = false;
   }
-  else if (mediumTxFlag && EnableCANTX)
+  
+  if (mediumTxFlag && EnableCANTX)
   {
-    Serial.println("mediumTX");
     if (mediumTxPointer < (sizeof(mediumTxMsgs) / sizeof(mediumTxMsgs[0]))) {
       unsigned char txBuf[2] = {0, pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][2]))};
       CAN.sendMsgBuf(pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][0])), 0, pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][1])), txBuf);
@@ -104,7 +103,8 @@ void performPeriodicMessageSend(unsigned long now) {
       mediumTxFlag = 0;
     }
   }
-  else if (slowTxFlag && EnableCANTX)
+  
+  if (slowTxFlag && EnableCANTX)
   {
     if (slowTxPointer < (sizeof(slowTxMsgs) / sizeof(slowTxMsgs[0]))) {
       unsigned char txBuf[2] = {0, pgm_read_byte(&(slowTxMsgs[slowTxPointer][2]))};

@@ -35,14 +35,12 @@ void performBluetoothSend(unsigned long now) {
 void performBluetoothSend1() {
   
   boolean hasSentValue = false;
+  
   for (byte i = 0; i < NUM_SENSORS; i++) {
     
-    /*Serial.print("state: ");
-    Serial.println(sensors[i].state);
-    Serial.print("isFresh: ");
-    Serial.println(sensors[i].isFresh);*/
-    
     if ( sensors[i].state && sensors[i].isFresh ) {
+      
+      Serial.println("Sending sensor value");
       
       BLEMini.write(sensors[i].dataIdentifier);
       BLEMini.write(sensors[i].value);
@@ -109,10 +107,10 @@ void performBluetoothReceive() {
         return;
     }
     
-    Serial.print("identifier: ");
+    /*Serial.print("identifier: ");
     Serial.println(identifier);
     Serial.print("value: ");
-    Serial.println(value);
+    Serial.println(value);*/
     
     //Check to see if the identifier is a sensor
     boolean isSensor = false;
@@ -124,6 +122,11 @@ void performBluetoothReceive() {
         else if (value == 1) {
           sensors[i].state = true;
         }
+        
+        Serial.print("setting sensor with state identifier ");
+        Serial.print(sensors[i].stateIdentifier, HEX);
+        Serial.print(" to value ");
+        Serial.println(sensors[i].state);
         
         sensors[i].isFresh = false;
         isSensor = true;
@@ -168,7 +171,7 @@ void performPropertySync(byte identifier, uint16_t value) {
   BLEMini.write(value);
   BLEMini.write(value >> 8);
   Serial.print("   SYNCED: ");  
-    Serial.println(identifier);  
+  Serial.println(identifier);  
 }
 
 void performBluetoothSync() {
@@ -181,6 +184,9 @@ void performBluetoothSync() {
     BLEMini.write(properties[i].bleIdentifier);
     BLEMini.write(properties[i].value);
     BLEMini.write(properties[i].value >> 8);
+    
+    Serial.print("Sync identifier: ");
+    Serial.println(properties[i].bleIdentifier);
     delay(1);
   }
   
@@ -190,6 +196,9 @@ void performBluetoothSync() {
     BLEMini.write(sensors[i].stateIdentifier);
     BLEMini.write(sensors[i].state);
     BLEMini.write(sensors[i].state >> 8);
+    
+    Serial.print("Sync identifier: ");
+    Serial.println(sensors[i].stateIdentifier);
     delay(1);
   }
   

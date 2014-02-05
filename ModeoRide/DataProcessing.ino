@@ -1,7 +1,6 @@
-void manageDataProcessing(){
-  if (rxDataIsFresh[DAT_RID_TRQ]==1) {
+void manageDataProcessing() {
+  if (rxDataIsFresh[DAT_RID_TRQ]) {
     handleStrainMessage(rxData[DAT_RID_TRQ]);
-    
     rxDataIsFresh[DAT_RID_TRQ] = false;
   }
   

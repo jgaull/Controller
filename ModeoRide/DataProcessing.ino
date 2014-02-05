@@ -237,7 +237,11 @@ void handleStrainMessage(byte newStrain) {
     byte index = strokes[i].index;
     
     if (index < strokes[i].length) {
-      expectedStrain += strokes[i].data[index];
+      
+      for (byte j = 0; j <= index; j++) {
+        expectedStrain += strokes[i].data[j];
+      }
+      
       strokes[i].index++;
     }
     else if (index > currentPedalStrokeLength) {
@@ -277,7 +281,7 @@ void handleStrainMessage(byte newStrain) {
     expectedStrain /= strokesLength;
   }
   
-  currentPedalStroke[currentPedalStrokeLength % MAX_STROKE_LENGTH] = currentStrain;
+  currentPedalStroke[currentPedalStrokeLength % MAX_STROKE_LENGTH] = strainDelta;
   currentPedalStrokeLength++;
   
   float strainDiff = currentStrain - expectedStrain;

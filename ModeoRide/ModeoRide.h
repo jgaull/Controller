@@ -171,7 +171,7 @@ struct PedalStroke {
   byte index;
   byte runs;
   byte strokeId;
-  int data[MAX_STROKE_LENGTH];
+  byte data[MAX_STROKE_LENGTH];
 };
 
 struct Sensor {

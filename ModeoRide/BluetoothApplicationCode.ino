@@ -39,9 +39,6 @@ void performBluetoothSend1() {
   for (byte i = 0; i < NUM_SENSORS; i++) {
     
     if ( sensors[i].state && sensors[i].isFresh ) {
-      
-      Serial.println("Sending sensor value");
-      
       BLEMini.write(sensors[i].dataIdentifier);
       BLEMini.write(sensors[i].value);
       BLEMini.write(sensors[i].value >> 8);
@@ -99,12 +96,9 @@ void performBluetoothReceive() {
     uint16_t value = (data2 << 8) + data1;
     
     if (identifier == SEND_PARAMS_BYTE) {
-      for(byte i = 0; i < NUM_SENSORS; i++) {
-      sensors[i].state = false;
-      }
       performBluetoothSync();
-        //Serial.println("send params");
-        return;
+      //Serial.println("send params");
+      return;
     }
     
     /*Serial.print("identifier: ");

@@ -225,6 +225,7 @@ void setup()
 // MAIN LOOP
 void loop()
 {
+  
   manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
 
   managePhysicalIO();
@@ -238,17 +239,16 @@ void loop()
   performBluetoothSend1();
 
   performBluetoothReceive();
-
-
+  
   performPeriodicMessageSend(now);
 
   manageTxTimers(now);
+  
   manageDataProcessing();
 
   //performSerialDebugging();
 
   manageActionCounter();
- 
 }
 
 void performSerialDebugging() {

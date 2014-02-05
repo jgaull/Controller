@@ -1,4 +1,5 @@
 void manageDataProcessing() {
+  
   if (rxDataIsFresh[DAT_RID_TRQ]) {
     handleStrainMessage(rxData[DAT_RID_TRQ]);
     rxDataIsFresh[DAT_RID_TRQ] = false;
@@ -131,15 +132,16 @@ boolean doesLineIntersectWithLine(point &p1, point &p2, point &p3, point &p4)
 
 
 void addNewStroke(PedalStroke stroke) {
+  byte newLength = min(strokesLength + 1, MAX_STORED_STROKES);
+  
   for (int i = strokesLength - 1; i >= 0; i--) {
-    if (i + 1 < strokesLength + 1) {
+    if (i + 1 < newLength) {
       strokes[i + 1] = strokes[i];
     }
   }
   
   strokes[0] = stroke;
-  
-  strokesLength = min(strokesLength + 1, MAX_STORED_STROKES);
+  strokesLength = newLength;
 }
 
 /*PedalStroke copyStroke(PedalStroke stroke) {
@@ -229,9 +231,6 @@ void handleStrainMessage(byte newStrain) {
     cyclesSinceLastStroke = min(cyclesSinceLastStroke + 1, 255);
   }
   
-
-  
-  
   int expectedStrain = 0;
   for (byte i = 0; i < strokesLength; i++) {
     
@@ -309,8 +308,8 @@ void handleStrainMessage(byte newStrain) {
   
   //A bunch of shit for sensor managers.
   float riderEffortSensorValue = constrain(riderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
-  riderEffortSensorValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
-  sensors[SENSOR_RIDER_EFFORT].value = riderEffortSensorValue;
+  uint16_t riderEffortValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
+  sensors[SENSOR_RIDER_EFFORT].value = riderEffortValue;
   sensors[SENSOR_RIDER_EFFORT].isFresh = true;
   
   float currentStrainSensorValue = constrain(currentStrain, 0, properties[PROPERTY_MAX_OUTPUT].value);
@@ -328,6 +327,7 @@ void handleStrainMessage(byte newStrain) {
   //end a bunch of shit for sensor managers
   
   Temp_Var_For_Fwd_Twrk_Msg = torque;
+  
  // hasTorqueMessage = true;  //  NOW ALTERNATELY HANDLED BY MEDIUM MESSAGE RX TIMER 
   //for debug.
   /*

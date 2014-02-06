@@ -27,7 +27,7 @@
 #define MAX_STORED_STROKES 3
 #define MAX_DAMPING_MULTIPLIER 1
 #define SMOOTHING_DIVISOR 65535
-#define RESOLUTION 100
+#define RESOLUTION 15
 //   END Constants for configuration of the strain characterization algorithm
 
 
@@ -191,6 +191,6 @@ struct Property {
 
  struct point
 {
-    float x;
-    float y;
+    byte x;
+    byte y;
 };

@@ -20,15 +20,22 @@ void manageDataProcessing() {
   }
   
   if (rxDataIsFresh[DAT_MTR_SPD]) {
-    sensors[SENSOR_SPEED].value = map(rxData[DAT_MTR_SPD], 0, 64, 0, UINT16_MAX);
-    sensors[SENSOR_SPEED].isFresh = true;
+    
+    uint16_t mappedSpeed = map(rxData[DAT_MTR_SPD], 0, 64, 0, UINT16_MAX);
+    
+    if (sensors[SENSOR_SPEED].value != mappedSpeed) {
+      recalculateBezierStrainDampingMultiplier();
+      
+      sensors[SENSOR_SPEED].value = mappedSpeed;
+      sensors[SENSOR_SPEED].isFresh = true;
+    }
     
     rxDataIsFresh[DAT_MTR_SPD] = false;
   }
  
 }
  
- 
+
 void meadowsFilterAndTorque(byte newRiderTrq)
 {
 if (meadowsStrainBuffer < 10)
@@ -63,34 +70,43 @@ else{
  */
 }
 
-void recalculateStrainDampingMultiplier() {
-  strainDampingMultiplier = MAX_DAMPING_MULTIPLIER / sqrt(pow(properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value, ((float)properties[PROPERTY_STRAIN_DAMPING_CURVE].value/(float)UINT16_MAX) * 2));
-  Serial.print("strainDampingMultiplier: ");
-  Serial.println(strainDampingMultiplier, 5);
-}
-
-void rebuildStrainDampingCurve() {
-  point sensitivity1 = { 0, 1 };
-  point sensitivity2 = { 0, 0 };
-  point sensitivity3 = { 1, 1 };
-  point sensitivity4 = { 1, 0 };
+void recalculateBezierStrainDampingMultiplier() {
   
-  point lowResolutionCurve[RESOLUTION];
-
-  for (int i=0; i < RESOLUTION; ++i)
-  {
-    point p;
-    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
-    bezier(p, sensitivity1, sensitivity2, sensitivity3, sensitivity4, t);
-    lowResolutionCurve[i] = p;
-  }
+  unsigned long timestamp = micros();
+  
+  float maxMultiplier = 1;
+  byte motorSpeed = constrain(rxData[DAT_MTR_SPD], 0, properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value);
+  byte mappedSpeed = map(motorSpeed, 0, properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value, 0, 255);
+  
+  point speed1 = { mappedSpeed, 0 };
+  point speed2 = { mappedSpeed, 255 };
   
   for (int i = 0; i < RESOLUTION - 1; i++)
   {
-    point curveSegment1 = lowResolutionCurve[i];
-    point curveSegment2 = lowResolutionCurve[i + 1];
+    point curveSegment1 = strainDampingCurve[i];
+    point curveSegment2 = strainDampingCurve[i + 1];
     
-    //Serial.println(doesLineIntersectWithLine(curveSegment1, curveSegment2, speed1, speed2));
+    point result;
+    
+    if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
+      strainDampingMultiplier = (float)result.y / 255.0f;
+      break;
+    }
+  }
+}
+
+void rebuildStrainDampingCurve() {
+  
+  point strainDamping1 = { 0, 0 };
+  point strainDamping2 = { 0, 0 };
+  point strainDamping3 = { 255, 255 };
+  point strainDamping4 = { 255, 255 };
+
+  for (int i=0; i < RESOLUTION; ++i) {
+    point p;
+    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
+    bezier(p, strainDamping1, strainDamping2, strainDamping3, strainDamping4, t);
+    strainDampingCurve[i] = p;
   }
 }
 
@@ -113,21 +129,28 @@ void bezier(point &dest, const point& a, const point& b, const point& c, const p
     lerp(dest, abbc,bccd,t);   // point on the bezier-curve (black)
 }
 
-boolean doesLineIntersectWithLine(point &p1, point &p2, point &p3, point &p4)
-{
-    float d = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
-    if (d == 0)
-        return false; // parallel lines
-        
-    float u = ((p3.x - p1.x)*(p4.y - p3.y) - (p3.y - p1.y)*(p4.x - p3.x))/d;
-    float v = ((p3.x - p1.x)*(p2.y - p1.y) - (p3.y - p1.y)*(p2.x - p1.x))/d;
-    
-    if (u < 0.0 || u > 1.0)
-        return false; // intersection point not between p1 and p2
-    if (v < 0.0 || v > 1.0)
-        return false; // intersection point not between p3 and p4
-    
-    return true;
+boolean intersectionOfLineFrom(point &p1, point &p2, point &p3, point &p4, point &result) {
+  float d = ((float)p2.x - (float)p1.x) * ((float)p4.y - (float)p3.y) - ((float)p2.y - (float)p1.y) * ((float)p4.x - (float)p3.x);
+  
+  if (d == 0) {
+      return false; // parallel lines
+  }
+      
+  float u = (((float)p3.x - (float)p1.x)*((float)p4.y - (float)p3.y) - ((float)p3.y - (float)p1.y)*((float)p4.x - (float)p3.x))/d;
+  float v = (((float)p3.x - (float)p1.x)*((float)p2.y - (float)p1.y) - ((float)p3.y - (float)p1.y)*((float)p2.x - (float)p1.x))/d;
+  
+  if (u < 0.0 || u > 1.0) {
+    return false; // intersection point not between p1 and p2
+  }
+  
+  if (v < 0.0 || v > 1.0) {
+    return false; // intersection point not between p3 and p4
+  }
+  
+  result.x = (float)p1.x + u * ((float)p2.x - (float)p1.x);
+  result.y = (float)p1.y + u * ((float)p2.y - (float)p1.y);
+  
+  return true;
 }
 
 
@@ -298,17 +321,13 @@ void handleStrainMessage(byte newStrain) {
   
   filterAmount *= filterMultiplier;
   
-  float strainDampingExponent = ((float)properties[PROPERTY_STRAIN_DAMPING_CURVE].value / (float)UINT16_MAX) * 2;
-  float strainDamping = sqrt(pow(rxData[DAT_MTR_SPD], strainDampingExponent)) * strainDampingMultiplier;
-  
-  strainDamping = constrain(strainDamping, 0, MAX_DAMPING_MULTIPLIER);
-  float dampenedStrain = currentStrain * strainDamping;
+  float dampenedStrain = currentStrain * strainDampingMultiplier;
   riderEffort = smooth(dampenedStrain, riderEffort, filterAmount);
   
   float multiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
   float multipliedEffort = multiplier * riderEffort;
-  float constrainedEffort = round(constrain(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value));
-  byte torque = map(constrainedEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
+  multipliedEffort = round(constrain(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value));
+  byte torque = map(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
   
   //A bunch of shit for sensor managers.
   float riderEffortSensorValue = constrain(riderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);

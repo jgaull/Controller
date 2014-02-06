@@ -144,10 +144,9 @@ void performBluetoothReceive() {
         Serial.println(value);
         
         switch(i) {
-          case PROPERTY_MAX_OUTPUT:
           case PROPERTY_STRAIN_DAMPING_CURVE:
           case PROPERTY_MAX_STRAIN_DAMPING_SPEED:
-            recalculateStrainDampingMultiplier();
+            rebuildStrainDampingCurve();
             break;
         }
         
@@ -165,7 +164,7 @@ void performPropertySync(byte identifier, uint16_t value) {
   BLEMini.write(value);
   BLEMini.write(value >> 8);
   Serial.print("   SYNCED: ");  
-  Serial.println(identifier);  
+  Serial.println(identifier);
 }
 
 void performBluetoothSync() {

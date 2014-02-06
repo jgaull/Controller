@@ -153,14 +153,10 @@ byte strokesLength = 0;
 byte strokeId = 0;
 byte cyclesSinceLastStroke = 0;
 
-uint16_t strainDampingControl1X = 0;
-uint16_t strainDampingControl1Y = 0;
-uint16_t strainDampingControl2X = UINT16_MAX;
-uint16_t strainDampingControl2Y = UINT16_MAX;
-
 float riderEffort = 0;
 
 float strainDampingMultiplier = 0.0f;
+point strainDampingCurve[RESOLUTION];
 
 boolean trqCmdTxFlag = false;
 
@@ -214,9 +210,9 @@ void setup()
 
   BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
   
-  recalculateStrainDampingMultiplier();
   constructBLESensors();
   constructBLEProperties();
+  rebuildStrainDampingCurve();
   
   Serial.println("SETUP COMPLETE");
 }
@@ -249,6 +245,11 @@ void loop()
   //performSerialDebugging();
 
   manageActionCounter();
+  
+  /*
+  Serial.print("freeMemory() = ");
+  Serial.println(freeMemory());
+  */
 }
 
 void performSerialDebugging() {

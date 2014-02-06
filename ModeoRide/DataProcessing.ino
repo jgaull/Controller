@@ -97,16 +97,26 @@ void recalculateBezierStrainDampingMultiplier() {
 
 void rebuildStrainDampingCurve() {
   
-  point strainDamping1 = { 0, 0 };
-  point strainDamping2 = { 0, 0 };
-  point strainDamping3 = { 255, 255 };
-  point strainDamping4 = { 255, 255 };
+  point control1;
+  control1.x = map(properties[PROPERTY_STRAIN_DAMPING_CONTROL1_X].value, 0, UINT16_MAX, 0, 255);
+  control1.y = map(properties[PROPERTY_STRAIN_DAMPING_CONTROL1_Y].value, 0, UINT16_MAX, 0, 255);
+  
+  point control2;
+  control2.x = map(properties[PROPERTY_STRAIN_DAMPING_CONTROL2_X].value, 0, UINT16_MAX, 0, 255);
+  control2.y = map(properties[PROPERTY_STRAIN_DAMPING_CONTROL2_Y].value, 0, UINT16_MAX, 0, 255);
+  
+  point startPoint = { 0, 0 };
+  point endPoint = { 255, 255 };
 
   for (int i=0; i < RESOLUTION; ++i) {
     point p;
     float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
-    bezier(p, strainDamping1, strainDamping2, strainDamping3, strainDamping4, t);
+    bezier(p, startPoint, control1, control2, endPoint, t);
     strainDampingCurve[i] = p;
+    
+    Serial.print(p.x);
+    Serial.print(",");
+    Serial.println(p.y);
   }
 }
 

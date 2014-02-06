@@ -27,7 +27,7 @@
 #define MAX_STORED_STROKES 3
 #define MAX_DAMPING_MULTIPLIER 1
 #define SMOOTHING_DIVISOR 65535
-#define RESOLUTION 15
+#define RESOLUTION 10
 //   END Constants for configuration of the strain characterization algorithm
 
 
@@ -174,19 +174,19 @@ struct PedalStroke {
   byte data[MAX_STROKE_LENGTH];
 };
 
-struct Sensor {
-  byte dataIdentifier;
-  byte stateIdentifier;
-  uint16_t value;
-  boolean state;
-  boolean isFresh;
-};
-
 struct Property {
   uint16_t value;
-  byte bleIdentifier;
-  byte eepLSB;
-  byte eepMSB;
+  //byte bleIdentifier;
+  boolean eepromSave;
+};
+
+struct Sensor {
+  byte dataIdentifier;
+  //byte stateIdentifier;
+  uint16_t value;
+  byte propertyAddress;
+  //boolean state;
+  boolean isFresh;
 };
 
  struct point

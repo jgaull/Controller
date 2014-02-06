@@ -38,7 +38,8 @@ void performBluetoothSend1() {
   
   for (byte i = 0; i < NUM_SENSORS; i++) {
     
-    if ( sensors[i].state && sensors[i].isFresh ) {
+    uint16_t value = properties[sensors[i].propertyAddress].value;
+    if ( value > 0 && sensors[i].isFresh ) {
       BLEMini.write(sensors[i].dataIdentifier);
       BLEMini.write(sensors[i].value);
       BLEMini.write(sensors[i].value >> 8);
@@ -101,59 +102,20 @@ void performBluetoothReceive() {
       return;
     }
     
-    /*Serial.print("identifier: ");
+    properties[identifier - FIRST_PROPERTY_IDENTIFIER].value = value;
+    
+    Serial.print("Identifier: ");
     Serial.println(identifier);
-    Serial.print("value: ");
-    Serial.println(value);*/
+    Serial.print("Value: ");
+    Serial.println(value);
     
-    //Check to see if the identifier is a sensor
-    boolean isSensor = false;
-    for(byte i = 0; i < NUM_SENSORS; i++) {
-      if( identifier == sensors[i].stateIdentifier ) {
-        if (value == 0) {
-          sensors[i].state = false;
-        }
-        else if (value == 1) {
-          sensors[i].state = true;
-        }
-        
-        Serial.print("setting sensor with state identifier ");
-        Serial.print(sensors[i].stateIdentifier, HEX);
-        Serial.print(" to value ");
-        Serial.println(sensors[i].state);
-        
-        sensors[i].isFresh = false;
-        isSensor = true;
-        performPropertySync(identifier, value);
+    switch(identifier) {
+      case PROPERTY_MAX_STRAIN_DAMPING_SPEED:
+        rebuildStrainDampingCurve();
         break;
-      }
     }
     
-    //If it was a sensor then hack around the rest of the function
-    if (isSensor) {
-      return;
-    }
-    
-    for (byte i = 0; i < NUM_PROPERTIES; i++) {
-      if (identifier == properties[i].bleIdentifier) {
-        properties[i].value = value;
-        
-        Serial.print("Property: ");
-        Serial.println(i);
-        Serial.print("Value: ");
-        Serial.println(value);
-        
-        switch(i) {
-          case PROPERTY_STRAIN_DAMPING_CURVE:
-          case PROPERTY_MAX_STRAIN_DAMPING_SPEED:
-            rebuildStrainDampingCurve();
-            break;
-        }
-        
-        performPropertySync(identifier, value);
-        break;
-      }
-    }
+    performPropertySync(identifier, value);
   }
 }
 
@@ -163,35 +125,27 @@ void performPropertySync(byte identifier, uint16_t value) {
   BLEMini.write(identifier);
   BLEMini.write(value);
   BLEMini.write(value >> 8);
-  Serial.print("   SYNCED: ");  
+  Serial.print("   SYNCED: ");
   Serial.println(identifier);
 }
 
 void performBluetoothSync() {
   digitalWrite(INDICATOR_LED_PIN, HIGH);
-  /*Serial.println(micros());
-  Serial.println("   SYNC START");
-  Serial.println(identifier);*/
   
-  for (byte i = 0; i < NUM_PROPERTIES; i++) {
-    BLEMini.write(properties[i].bleIdentifier);
-    BLEMini.write(properties[i].value);
-    BLEMini.write(properties[i].value >> 8);
-    
-    Serial.print("Sync identifier: ");
-    Serial.println(properties[i].bleIdentifier);
-    delay(1);
-  }
+  /*
+  Serial.println(micros());
+  Serial.println("   SYNC START");
+  Serial.println(identifier);
+  */
   
   for (byte i = 0; i < NUM_SENSORS; i++) {
-    sensors[i].state = false; //when we're performing a sync then we reset the sensors.
-    
-    BLEMini.write(sensors[i].stateIdentifier);
-    BLEMini.write(sensors[i].state);
-    BLEMini.write(sensors[i].state >> 8);
-    
-    Serial.print("Sync identifier: ");
-    Serial.println(sensors[i].stateIdentifier);
+    properties[sensors[i].propertyAddress].value = false; //when we're performing a sync then we reset the sensors.
+  }
+  
+  for (byte i = 0; i < NUM_PROPERTIES; i++) {
+    BLEMini.write(i + FIRST_PROPERTY_IDENTIFIER);
+    BLEMini.write(properties[i].value);
+    BLEMini.write(properties[i].value >> 8);
     delay(1);
   }
   
@@ -202,89 +156,36 @@ void performBluetoothSync() {
 }
 
 void constructBLESensors() {
-  sensors[SENSOR_RIDER_EFFORT].dataIdentifier = RIDER_EFFORT_BYTE;
-  sensors[SENSOR_RIDER_EFFORT].stateIdentifier = ENABLE_RIDER_EFFORT_UPDATES_BYTE;
-  sensors[SENSOR_RIDER_EFFORT].value = 0;
-  sensors[SENSOR_RIDER_EFFORT].state = false;
-  sensors[SENSOR_RIDER_EFFORT].isFresh = false;
   
-  sensors[SENSOR_CURRENT_STRAIN].dataIdentifier = 0x0B;
-  sensors[SENSOR_CURRENT_STRAIN].stateIdentifier = ENABLE_CURRENT_STRAIN_UPATES_BYTE;
-  sensors[SENSOR_CURRENT_STRAIN].value = 0;
-  sensors[SENSOR_CURRENT_STRAIN].state = false;
-  sensors[SENSOR_CURRENT_STRAIN].isFresh = false;
+  for (byte i = 0; i < NUM_SENSORS; i++) {
+    sensors[i].dataIdentifier = i + FIRST_SENSOR_IDENTIFIER;
+    sensors[i].value = 0;
+    sensors[i].isFresh = false;
+  }
   
-  sensors[SENSOR_SPEED].dataIdentifier = 0x0C;
-  sensors[SENSOR_SPEED].stateIdentifier = ENABLE_SPEED_UPDATES_BYTE;
-  sensors[SENSOR_SPEED].value = 0;
-  sensors[SENSOR_SPEED].state = false;
-  sensors[SENSOR_SPEED].isFresh = false;
-  
-  sensors[SENSOR_RAW_STRAIN].dataIdentifier = 0x0D;
-  sensors[SENSOR_RAW_STRAIN].stateIdentifier = ENABLE_RAW_STRAIN_UPDATES_BYTE;
-  sensors[SENSOR_RAW_STRAIN].value = 0;
-  sensors[SENSOR_RAW_STRAIN].state = false;
-  sensors[SENSOR_RAW_STRAIN].isFresh = false;
-  
-  sensors[SENSOR_TORQUE_APPLIED].dataIdentifier = 0x0E;
-  sensors[SENSOR_TORQUE_APPLIED].stateIdentifier = ENABLE_TORQUE_APPLIED_UPDATES_BYTE;
-  sensors[SENSOR_TORQUE_APPLIED].value = 0;
-  sensors[SENSOR_TORQUE_APPLIED].state = false;
-  sensors[SENSOR_TORQUE_APPLIED].isFresh = false;
-  
-  sensors[SENSOR_MOTOR_TEMP].dataIdentifier = 0x0F;
-  sensors[SENSOR_MOTOR_TEMP].stateIdentifier = ENABLE_MOTOR_TEMP_UPDATES_BYTE;
-  sensors[SENSOR_MOTOR_TEMP].value = 0;
-  sensors[SENSOR_MOTOR_TEMP].state = false;
-  sensors[SENSOR_MOTOR_TEMP].isFresh = false;
-  
-  sensors[SENSOR_BATTERY_VOLTAGE].dataIdentifier = 0xAA;
-  sensors[SENSOR_BATTERY_VOLTAGE].stateIdentifier = ENABLE_BATTERY_VOLTAGE_BYTE;
-  sensors[SENSOR_BATTERY_VOLTAGE].value = 0;
-  sensors[SENSOR_BATTERY_VOLTAGE].state = false;
-  sensors[SENSOR_BATTERY_VOLTAGE].isFresh = false;
+  sensors[SENSOR_RIDER_EFFORT].propertyAddress = PROPERTY_SENSOR_RIDER_EFFORT_STATE;
+  sensors[SENSOR_CURRENT_STRAIN].propertyAddress = PROPERTY_SENSOR_CURRENT_STRAIN_STATE;
+  sensors[SENSOR_SPEED].propertyAddress = PROPERTY_SENSOR_SPEED_STATE;
+  sensors[SENSOR_RAW_STRAIN].propertyAddress = PROPERTY_SENSOR_RAW_STRAIN_STATE;
+  sensors[SENSOR_TORQUE_APPLIED].propertyAddress = PROPERTY_SENSOR_TORQUE_APPLIED_STATE;
+  sensors[SENSOR_MOTOR_TEMP].propertyAddress = PROPERTY_SENSOR_MOTOR_TEMP_STATE;
+  sensors[SENSOR_BATTERY_VOLTAGE].propertyAddress = PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE;
 }
 
 void constructBLEProperties() {
-  properties[PROPERTY_SMOOTHING_MIN].value = 0;
-  properties[PROPERTY_SMOOTHING_MIN].bleIdentifier = SMOOTHING_MIN_BYTE;
-  properties[PROPERTY_SMOOTHING_MIN].eepMSB = EEP_SMOOTHING_MIN_MSB;
-  properties[PROPERTY_SMOOTHING_MIN].eepLSB = EEP_SMOOTHING_MIN_LSB;
   
-  properties[PROPERTY_SMOOTHING_MAX].value = 0;
-  properties[PROPERTY_SMOOTHING_MAX].bleIdentifier = SMOOTHING_MAX_BYTE;
-  properties[PROPERTY_SMOOTHING_MAX].eepMSB = EEP_SMOOTHING_MAX_MSB;
-  properties[PROPERTY_SMOOTHING_MAX].eepLSB = EEP_SMOOTHING_MAX_LSB;
-  
-  properties[PROPERTY_MAX_OUTPUT].value = 0;
-  properties[PROPERTY_MAX_OUTPUT].bleIdentifier = MAX_OUTPUT_BYTE;
-  properties[PROPERTY_MAX_OUTPUT].eepMSB = EEP_MAX_OUTPUT_MSB;
-  properties[PROPERTY_MAX_OUTPUT].eepLSB = EEP_MAX_OUTPUT_LSB;
-  
-  properties[PROPERTY_STRAIN_DAMPING_CURVE].value = 0;
-  properties[PROPERTY_STRAIN_DAMPING_CURVE].bleIdentifier = STRAIN_DAMPING_CURVE_BYTE;
-  properties[PROPERTY_STRAIN_DAMPING_CURVE].eepMSB = EEP_STRAINDAMPCURVE_MSB;
-  properties[PROPERTY_STRAIN_DAMPING_CURVE].eepLSB = EEP_MAXSTRAINDAMP_LSB;
-  
-  properties[PROPERTY_STROKE_TIMEOUT_CYCLES].value = 0;
-  properties[PROPERTY_STROKE_TIMEOUT_CYCLES].bleIdentifier = STROKE_TIMEOUT_CYCLES_BYTE;
-  properties[PROPERTY_STROKE_TIMEOUT_CYCLES].eepMSB = EEP_STROKETIMOUTCYC_MSB;
-  properties[PROPERTY_STROKE_TIMEOUT_CYCLES].eepLSB = EEP_STROKETIMOUTCYC_LSB;
-  
-  properties[PROPERTY_MAX_EFFORT].value = 0;
-  properties[PROPERTY_MAX_EFFORT].bleIdentifier = MAX_EFFORT_BYTE;
-  properties[PROPERTY_MAX_EFFORT].eepMSB = EEP_MAXEFFORT_MSB;
-  properties[PROPERTY_MAX_EFFORT].eepLSB = EEP_MAXEFFORT_LSB;
-  
-  properties[PROPERTY_TORQUE_MULTIPLIER].value = 0;
-  properties[PROPERTY_TORQUE_MULTIPLIER].bleIdentifier = TORQUE_MULTIPLIER_BYTE;
-  properties[PROPERTY_TORQUE_MULTIPLIER].eepMSB = EEP_TRQ_MULT_MSB;
-  properties[PROPERTY_TORQUE_MULTIPLIER].eepLSB = EEP_TRQ_MULT_LSB;
-  
-  properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value = 0;
-  properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].bleIdentifier = MAX_STRAIN_DAMPING_SPEED_BYTE;
-  properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].eepMSB = EEP_MAXSTRAINDAMP_MSB;
-  properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].eepLSB = EEP_MAXSTRAINDAMP_LSB;
+  for (byte i = 0; i < NUM_PROPERTIES; i++) {
+    properties[i].value = 0;
+    properties[i].eepromSave = true;
+  }
+
+  properties[PROPERTY_SENSOR_RIDER_EFFORT_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_SPEED_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_RAW_STRAIN_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_TORQUE_APPLIED_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_MOTOR_TEMP_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE].eepromSave = false;
+  properties[PROPERTY_TORQUE_MULTIPLIER].eepromSave = false;
 }
 
 

@@ -176,16 +176,14 @@ struct PedalStroke {
 
 struct Property {
   uint16_t value;
-  //byte bleIdentifier;
   boolean eepromSave;
+  boolean pendingSave;
 };
 
 struct Sensor {
   byte dataIdentifier;
-  //byte stateIdentifier;
   uint16_t value;
   byte propertyAddress;
-  //boolean state;
   boolean isFresh;
 };
 

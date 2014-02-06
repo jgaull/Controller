@@ -96,21 +96,35 @@ void performBluetoothReceive() {
     
     uint16_t value = (data2 << 8) + data1;
     
-    if (identifier == SEND_PARAMS_BYTE) {
-      performBluetoothSync();
-      //Serial.println("send params");
-      return;
-    }
-    
-    properties[identifier - FIRST_PROPERTY_IDENTIFIER].value = value;
-    
     Serial.print("Identifier: ");
     Serial.println(identifier);
     Serial.print("Value: ");
     Serial.println(value);
     
+    if (identifier >= FIRST_COMMAND_IDENTIFIER) {
+      byte commandIdentifier = identifier - FIRST_COMMAND_IDENTIFIER;
+      
+      if (commandIdentifier == REQUEST_CONNECT) {
+        performConnect();
+      }
+      else if (commandIdentifier == REQUEST_DISCONNECT) {
+        performDisconnect();
+      }
+      
+      return;
+    }
+    
+    byte propertyIdentifier = identifier - FIRST_PROPERTY_IDENTIFIER;
+    if (properties[propertyIdentifier].value != value) {
+      properties[propertyIdentifier].value = value;
+      properties[propertyIdentifier].pendingSave = true;
+    }
+    
     switch(identifier) {
-      case PROPERTY_MAX_STRAIN_DAMPING_SPEED:
+      case PROPERTY_STRAIN_DAMPING_CONTROL1_X:
+      case PROPERTY_STRAIN_DAMPING_CONTROL1_Y:
+      case PROPERTY_STRAIN_DAMPING_CONTROL2_X:
+      case PROPERTY_STRAIN_DAMPING_CONTROL2_Y:
         rebuildStrainDampingCurve();
         break;
     }
@@ -129,7 +143,7 @@ void performPropertySync(byte identifier, uint16_t value) {
   Serial.println(identifier);
 }
 
-void performBluetoothSync() {
+void performConnect() {
   digitalWrite(INDICATOR_LED_PIN, HIGH);
   
   /*
@@ -138,9 +152,7 @@ void performBluetoothSync() {
   Serial.println(identifier);
   */
   
-  for (byte i = 0; i < NUM_SENSORS; i++) {
-    properties[sensors[i].propertyAddress].value = false; //when we're performing a sync then we reset the sensors.
-  }
+  stopSensorUpdates();
   
   for (byte i = 0; i < NUM_PROPERTIES; i++) {
     BLEMini.write(i + FIRST_PROPERTY_IDENTIFIER);
@@ -153,6 +165,17 @@ void performBluetoothSync() {
   Serial.println(micros());
   Serial.println("  SYNC END");
   */
+}
+
+void performDisconnect() {
+  stopSensorUpdates();
+  storeCalibrations();
+}
+
+void stopSensorUpdates() {
+  for (byte i = 0; i < NUM_SENSORS; i++) {
+    properties[sensors[i].propertyAddress].value = false; //when we're performing a sync then we reset the sensors.
+  }
 }
 
 void constructBLESensors() {

@@ -113,10 +113,6 @@ void rebuildStrainDampingCurve() {
     float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
     bezier(p, startPoint, control1, control2, endPoint, t);
     strainDampingCurve[i] = p;
-    
-    Serial.print(p.x);
-    Serial.print(",");
-    Serial.println(p.y);
   }
 }
 

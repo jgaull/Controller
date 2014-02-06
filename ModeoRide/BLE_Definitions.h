@@ -32,8 +32,8 @@
 #define NUM_PROPERTIES 18 //Is there a better way to do this?
 
 //Used to sync iOS to Arduino
-#define SEND_PARAMS_BYTE 0xEE
-#define DISCONNECT_BYTE 0xFF
+#define REQUEST_CONNECT 0
+#define REQUEST_DISCONNECT 1
 
 #define FIRST_PROPERTY_IDENTIFIER 0
 #define FIRST_SENSOR_IDENTIFIER 150

@@ -69,7 +69,6 @@ unsigned int CycleActionCnt = 0;
 
 
 // State management variables
-bool sendBleFlg = 0;
 bool readyToStart = 1;
 bool EnableCANTX = 0;
 bool EnableBluetoothTX = 0;
@@ -94,29 +93,10 @@ byte strokesLength = 0;
 byte strokeId = 0;
 byte cyclesSinceLastStroke = 0;
 
-//Tuning Parameters
-//These look like constants right now, but that will change.
-uint16_t SMOOTHING_MIN = 58982; //The map function only works with whole numbers...
-uint16_t SMOOTHING_MAX = 64224;
-uint16_t MAX_OUTPUT = 150;
-uint16_t MAX_INPUT = 150;
-uint16_t STRAIN_DAMPING_CURVE = 117963; //Must be > 0 and < 2. Smaller number means steeper curve and more aggressive damping.
-uint16_t STROKE_TIMEOUT_CYCLES = 40;
-uint16_t MAX_EFFORT = 100;
-uint16_t torqueMultiplier = 100;
-uint16_t maxStrainDampingSpeed = 8;
-
-bool enableRiderEffortUpdates = false;
-bool enableCurrentStrainUpdates = false;
-//These aren't used yet, but will need to be.
-bool enableSpeedUpdates = false;
-bool enableBatteryVoltageUpdates = false;
-
-//float previousStrokeWeights[NUM_AVERAGED_STROKES] = { 0.5f, 1.0f, 0.5f, 1.0f };
-
 float riderEffort = 0;
 
 float strainDampingMultiplier = 0.0f;
+point strainDampingCurve[RESOLUTION];
 
 boolean trqCmdTxFlag = false;
 
@@ -126,6 +106,8 @@ boolean trqCmdTxFlag = false;
 byte REAL_SPEED_THRESH = 0x04;
 byte VBATT_THRESH = 0xA0;
 
+Sensor sensors[NUM_SENSORS];
+Property properties[NUM_PROPERTIES];
 
 AltSoftSerial BLEMini;
 //#define BLEMini Serial
@@ -150,14 +132,19 @@ void setup()
   CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx system
 
   BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
-  recalculateStrainDampingMultiplier();
-
+  
+  constructBLESensors();
+  constructBLEProperties();
+  rebuildStrainDampingCurve();
+  
+  Serial.println("SETUP COMPLETE");
 }
 
 
 // MAIN LOOP
 void loop()
 {
+  
   manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
 
   managePhysicalIO();
@@ -170,17 +157,22 @@ void loop()
 
   performBluetoothSend1();
 
-  peformBluetoothReceive();
-
-
+  performBluetoothReceive();
+  
   performPeriodicMessageSend(now);
 
   manageTxTimers(now);
+  
   manageDataProcessing();
 
   //performSerialDebugging();
 
   manageActionCounter();
+  
+  /*
+  Serial.print("freeMemory() = ");
+  Serial.println(freeMemory());
+  */
 }
 
 void performSerialDebugging() {
@@ -226,6 +218,7 @@ void manageVehicleState(bool switchValue) {
     EnableCANTX = 1;
     EnableBluetoothTX = 1;
     EnableBluetoothRX = 1;
+    Serial.println("ACTIVATE BIONX COMPLETE");
   }
   else if (readyToStart == 0 && switchValue == LOW)
   {
@@ -234,6 +227,7 @@ void manageVehicleState(bool switchValue) {
     EnableCANTX = 0;
     EnableBluetoothTX = 0;
     EnableBluetoothRX = 0;
+     Serial.println("SHURTDOWN BIONX COMPLETE");
   }
 }
 

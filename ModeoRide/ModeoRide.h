@@ -24,33 +24,11 @@
 
 //  Constants for configuration of the strain characterization algorithm
 #define NUM_AVERAGED_STROKES 3
-#define MAX_STORED_STROKES 6
+#define MAX_STORED_STROKES 3
 #define MAX_DAMPING_MULTIPLIER 1
 #define SMOOTHING_DIVISOR 65535
-#define MAX_STRAIN_DAMPING_CURVE 10
+#define RESOLUTION 10
 //   END Constants for configuration of the strain characterization algorithm
-
-//Constants for BLE properties
-#define NUM_AVERAGED_STROKES_BYTE 0x1A
-#define MAX_STORED_STROKES_BYTE 0x1B
-#define MAX_STRAIN_DAMPING_SPEED_BYTE 0x1C
-#define MAX_OUTPUT_BYTE 0x1D
-#define STRAIN_DAMPING_CURVE_BYTE 0x1E
-#define STROKE_TIMEOUT_CYCLES_BYTE 0x1F
-#define SMOOTHING_MIN_BYTE 0x2A
-#define SMOOTHING_MAX_BYTE 0x2B
-#define MAX_EFFORT_BYTE 0x2C
-#define ENABLE_RIDER_EFFORT_UPDATES_BYTE 0x2D
-#define TORQUE_MULTIPLIER_BYTE 0x2E
-#define ENABLE_CURRENT_STRAIN_UPDATES_BYTE 0x2F
-
-//Values sent from sensors to iOS
-#define RIDER_EFFORT_BYTE 0x0A
-#define CURRENT_STRAIN_BYTE 0x0B
-
-//Used to sync iOS to Arduino
-#define SEND_PARAMS_BYTE 0xEE
-
 
 
 #define CMD_MTR_0x02_ID         0x02    //  unknown cmd sent at start
@@ -108,7 +86,24 @@ struct PedalStroke {
   byte index;
   byte runs;
   byte strokeId;
-  int data[MAX_STROKE_LENGTH];
+  byte data[MAX_STROKE_LENGTH];
 };
 
+struct Property {
+  uint16_t value;
+  boolean eepromSave;
+  boolean pendingSave;
+};
 
+struct Sensor {
+  byte dataIdentifier;
+  uint16_t value;
+  byte propertyAddress;
+  boolean isFresh;
+};
+
+ struct point
+{
+    byte x;
+    byte y;
+};

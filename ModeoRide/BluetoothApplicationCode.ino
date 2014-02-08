@@ -1,4 +1,4 @@
-void performBluetoothSend(unsigned long now) {
+/*void performBluetoothSend(unsigned long now) {
    // manage BLE counter 
    // 50 ms fast, 200 ms med, 1000 ms slow
  
@@ -30,42 +30,30 @@ void performBluetoothSend(unsigned long now) {
    }
   
   }
-}
+}*/
 
 void performBluetoothSend1() {
- // check for switch on and CAN rx code indicating ready to transmit
- /*Serial.print("enableRiderEffortUpdates: ");
- Serial.println(enableRiderEffortUpdates);
- Serial.print("sendBleFlg: ");
- Serial.println(sendBleFlg);*/
- boolean hasSentValue = false;
- 
-//   if (enableRiderEffortUpdates && sendBleFlg)
- 
-  if (enableRiderEffortUpdates && sendBleFlg)
-  {
-    digitalWrite(INDICATOR_LED_PIN, HIGH);
-    float convertedEffort = ((float)riderEffort / (float)MAX_EFFORT) * UINT16_MAX;
-    uint16_t effortValue = constrain(convertedEffort, 0, UINT16_MAX);
-    BLEMini.write(RIDER_EFFORT_BYTE);
-    BLEMini.write(effortValue);
-    BLEMini.write(effortValue >> 8);
-    hasSentValue = true;
-  }
   
-  if (enableCurrentStrainUpdates && sendBleFlg) {
-    float convertedStrain = ((float)currentStrain / (float)MAX_OUTPUT) * UINT16_MAX;
-    uint16_t strainValue = constrain(convertedStrain, 0, UINT16_MAX);
-    BLEMini.write(CURRENT_STRAIN_BYTE);
-    BLEMini.write(strainValue);
-    BLEMini.write(strainValue >> 8);
-    hasSentValue = true;
+  boolean hasSentValue = false;
+  
+  for (byte i = 0; i < NUM_SENSORS; i++) {
+    
+    uint16_t value = properties[sensors[i].propertyAddress].value;
+    if ( value > 0 && sensors[i].isFresh ) {
+      BLEMini.write(sensors[i].dataIdentifier);
+      BLEMini.write(sensors[i].value);
+      BLEMini.write(sensors[i].value >> 8);
+      
+      sensors[i].isFresh = false;
+      
+      hasSentValue = true;
+    }
   }
   
   digitalWrite(INDICATOR_LED_PIN, hasSentValue);
-  sendBleFlg = false;  // clear ready to transmit flag
 }
 
+/*
 void writeBLEmsg(byte msgID, byte arrayPointer){
   
   
@@ -90,150 +78,60 @@ void writeBLEmsg(byte msgID, byte arrayPointer){
     BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][17])));
     BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][18])));
 }
+*/
 
 
 
 
-void peformBluetoothReceive() {
+void performBluetoothReceive() {
   
-  if (BLEMini.available() > 0) {
+  /*if (BLEMini.available() > 0) {
     Serial.print("Available: ");
     Serial.println(BLEMini.available());
-  }
+  }*/
   
-  while ( BLEMini.available() )
+  if ( BLEMini.available() == 3 )
   {
     byte identifier = BLEMini.read();
     byte data1 = BLEMini.read();
     byte data2 = BLEMini.read();
     
-    /*Serial.print("data1: ");
-    Serial.println(data1);
-    Serial.print("data2: ");
-    Serial.println(data2);*/
-    
-    //Serial.print("identifier: ");
-    //Serial.println(identifier);
-    
     uint16_t value = (data2 << 8) + data1;
     
-    //Serial.print("value: ");
-    //Serial.println(value);
+    Serial.print("Identifier: ");
+    Serial.println(identifier);
+    Serial.print("Value: ");
+    Serial.println(value);
     
-    if (identifier == SEND_PARAMS_BYTE) {
-        performBluetoothSync();
-        Serial.println("send params");
-        return;
+    if (identifier >= FIRST_COMMAND_IDENTIFIER) {
+      byte commandIdentifier = identifier - FIRST_COMMAND_IDENTIFIER;
+      
+      if (commandIdentifier == REQUEST_CONNECT) {
+        performConnect();
+      }
+      else if (commandIdentifier == REQUEST_DISCONNECT) {
+        performDisconnect();
+      }
+      
+      return;
     }
     
-    boolean isValidIdentifier = true;
-    switch(identifier)
-    {
-      case SMOOTHING_MIN_BYTE:
-      
-        SMOOTHING_MIN = value;
-        
-        //Serial.print("smoothingMin: ");
-        //Serial.println(SMOOTHING_MIN);
-        break;
-        
-      case SMOOTHING_MAX_BYTE:
-      
-        SMOOTHING_MAX = value;
-        
-        //Serial.print("smoothingMax: ");
-        //Serial.println(SMOOTHING_MAX);
-        break;
-      
-      case MAX_OUTPUT_BYTE:
-      
-        MAX_OUTPUT = value;
-        recalculateStrainDampingMultiplier();
-        
-        //Serial.print("maxOutput: ");
-        //Serial.println(MAX_OUTPUT);
-        break;
-        
-      case MAX_STRAIN_DAMPING_SPEED_BYTE:
-      
-        maxStrainDampingSpeed = value;
-        recalculateStrainDampingMultiplier();
-        
-        //Serial.print("maxInput: ");
-        //Serial.println(maxStrainDampingSpeed);
-        break;
-        
-      case STRAIN_DAMPING_CURVE_BYTE:
-      
-        //STRAIN_DAMPING_CURVE = ((float)value / (float)UINT16_MAX) * 2;
-        STRAIN_DAMPING_CURVE = value;
-        recalculateStrainDampingMultiplier();
-        
-        //Serial.print("strainDampingCurve: ");
-        //Serial.println(STRAIN_DAMPING_CURVE);
-        break;
-      
-      case STROKE_TIMEOUT_CYCLES_BYTE:
-      
-        STROKE_TIMEOUT_CYCLES = value;
-        
-        //Serial.print("strokeTimeoutCycles: ");
-        //Serial.println(STROKE_TIMEOUT_CYCLES);
-        break;
-        
-      case MAX_EFFORT_BYTE:
-      
-        MAX_EFFORT = value;
-        
-        //Serial.print("maxEffort: ");
-        //Serial.println(MAX_EFFORT);
-        break;
-        
-      case ENABLE_RIDER_EFFORT_UPDATES_BYTE:
-        
-        if (value == 0) {
-          enableRiderEffortUpdates = false;
-        }
-        else if (value == 1) {
-          enableRiderEffortUpdates = true;
-        }
-        
-        //Serial.print("enableRiderEffortUpdates: ");
-        //Serial.println(enableRiderEffortUpdates);
-        break;
-        
-      case TORQUE_MULTIPLIER_BYTE:
-      
-        torqueMultiplier = value;
-        
-        //Serial.print("torqueMultiplier: ");
-        //Serial.println(torqueMultiplier);
-        break;
-        
-      case ENABLE_CURRENT_STRAIN_UPDATES_BYTE:
-      
-        if (value == 0) {
-          enableCurrentStrainUpdates = false;
-        }
-        else if (value == 1) {
-          enableCurrentStrainUpdates = true;
-        }
-        
-        //Serial.print("currentStrainUpdates: ");
-        //Serial.println(enableCurrentStrainUpdates);
-        break;
-        
-      default:
-        /*Serial.print("Unknown Identifier: ");
-        Serial.print(identifier, HEX);
-        Serial.print(", ");
-        Serial.println(identifier);*/
-        isValidIdentifier = false;
+    byte propertyIdentifier = identifier - FIRST_PROPERTY_IDENTIFIER;
+    if (properties[propertyIdentifier].value != value) {
+      properties[propertyIdentifier].value = value;
+      properties[propertyIdentifier].pendingSave = true;
     }
     
-    if (isValidIdentifier) {
-      performPropertySync(identifier, value);
+    switch(identifier) {
+      case PROPERTY_STRAIN_DAMPING_CONTROL1_X:
+      case PROPERTY_STRAIN_DAMPING_CONTROL1_Y:
+      case PROPERTY_STRAIN_DAMPING_CONTROL2_X:
+      case PROPERTY_STRAIN_DAMPING_CONTROL2_Y:
+        rebuildStrainDampingCurve();
+        break;
     }
+    
+    performPropertySync(identifier, value);
   }
 }
 
@@ -244,54 +142,76 @@ void performPropertySync(byte identifier, uint16_t value) {
   BLEMini.write(value);
   BLEMini.write(value >> 8);
   
-  //Serial.print("Sync value: ");
-  //Serial.println(value);
-  //Serial.print("sync id: ");
-  //Serial.println(identifier);
+  Serial.print("   SYNCED: ");
+  Serial.println(identifier);
 }
 
-void performBluetoothSync() {
+void performConnect() {
   digitalWrite(INDICATOR_LED_PIN, HIGH);
   
-  BLEMini.write(SMOOTHING_MIN_BYTE);
-  BLEMini.write(SMOOTHING_MIN);
-  BLEMini.write(SMOOTHING_MIN >> 8);
+  /*
+  Serial.println(micros());
+  Serial.println("   SYNC START");
+  Serial.println(identifier);
+  */
   
-  BLEMini.write(SMOOTHING_MAX_BYTE);
-  BLEMini.write(SMOOTHING_MAX);
-  BLEMini.write(SMOOTHING_MAX >> 8);
+  stopSensorUpdates();
   
-  BLEMini.write(MAX_OUTPUT_BYTE);
-  BLEMini.write(MAX_OUTPUT);
-  BLEMini.write(MAX_OUTPUT >> 8);
+  for (byte i = 0; i < NUM_PROPERTIES; i++) {
+    BLEMini.write(i + FIRST_PROPERTY_IDENTIFIER);
+    BLEMini.write(properties[i].value);
+    BLEMini.write(properties[i].value >> 8);
+    delay(1);
+  }
   
-  BLEMini.write(MAX_STRAIN_DAMPING_SPEED_BYTE);
-  BLEMini.write(maxStrainDampingSpeed);
-  BLEMini.write(maxStrainDampingSpeed >> 8);
+  /*
+  Serial.println(micros());
+  Serial.println("  SYNC END");
+  */
+}
+
+void performDisconnect() {
+  stopSensorUpdates();
+  storeCalibrations();
+}
+
+void stopSensorUpdates() {
+  for (byte i = 0; i < NUM_SENSORS; i++) {
+    properties[sensors[i].propertyAddress].value = false; //when we're performing a sync then we reset the sensors.
+  }
+}
+
+void constructBLESensors() {
   
-  BLEMini.write(STRAIN_DAMPING_CURVE_BYTE);
-  BLEMini.write(STRAIN_DAMPING_CURVE);
-  BLEMini.write(STRAIN_DAMPING_CURVE >> 8);
+  for (byte i = 0; i < NUM_SENSORS; i++) {
+    sensors[i].dataIdentifier = i + FIRST_SENSOR_IDENTIFIER;
+    sensors[i].value = 0;
+    sensors[i].isFresh = false;
+  }
   
-  BLEMini.write(STROKE_TIMEOUT_CYCLES_BYTE);
-  BLEMini.write(STROKE_TIMEOUT_CYCLES);
-  BLEMini.write(STROKE_TIMEOUT_CYCLES >> 8);
+  sensors[SENSOR_RIDER_EFFORT].propertyAddress = PROPERTY_SENSOR_RIDER_EFFORT_STATE;
+  sensors[SENSOR_CURRENT_STRAIN].propertyAddress = PROPERTY_SENSOR_CURRENT_STRAIN_STATE;
+  sensors[SENSOR_SPEED].propertyAddress = PROPERTY_SENSOR_SPEED_STATE;
+  sensors[SENSOR_RAW_STRAIN].propertyAddress = PROPERTY_SENSOR_RAW_STRAIN_STATE;
+  sensors[SENSOR_TORQUE_APPLIED].propertyAddress = PROPERTY_SENSOR_TORQUE_APPLIED_STATE;
+  sensors[SENSOR_MOTOR_TEMP].propertyAddress = PROPERTY_SENSOR_MOTOR_TEMP_STATE;
+  sensors[SENSOR_BATTERY_VOLTAGE].propertyAddress = PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE;
+}
+
+void constructBLEProperties() {
   
-  BLEMini.write(MAX_EFFORT_BYTE);
-  BLEMini.write(MAX_EFFORT);
-  BLEMini.write(MAX_EFFORT >> 8);
-  
-  BLEMini.write(ENABLE_RIDER_EFFORT_UPDATES_BYTE);
-  BLEMini.write(enableRiderEffortUpdates);
-  BLEMini.write(enableRiderEffortUpdates >> 8);
-  
-  BLEMini.write(TORQUE_MULTIPLIER_BYTE);
-  BLEMini.write(torqueMultiplier);
-  BLEMini.write(torqueMultiplier >> 8);
-  
-  BLEMini.write(ENABLE_CURRENT_STRAIN_UPDATES_BYTE);
-  BLEMini.write(enableCurrentStrainUpdates);
-  BLEMini.write(enableCurrentStrainUpdates >> 8);
+  for (byte i = 0; i < NUM_PROPERTIES; i++) {
+    properties[i].value = 0;
+    properties[i].eepromSave = true;
+  }
+
+  properties[PROPERTY_SENSOR_RIDER_EFFORT_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_SPEED_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_RAW_STRAIN_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_TORQUE_APPLIED_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_MOTOR_TEMP_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE].eepromSave = false;
+  properties[PROPERTY_TORQUE_MULTIPLIER].eepromSave = false;
 }
 
 

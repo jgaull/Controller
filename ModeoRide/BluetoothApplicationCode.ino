@@ -127,7 +127,25 @@ void performBluetoothReceive() {
       case PROPERTY_STRAIN_DAMPING_CONTROL1_Y:
       case PROPERTY_STRAIN_DAMPING_CONTROL2_X:
       case PROPERTY_STRAIN_DAMPING_CONTROL2_Y:
-        rebuildStrainDampingCurve();
+        buildDampingCurve();
+        break;
+      case PROPERTY_ASSIST_1_X:
+      case PROPERTY_ASSIST_1_Y:
+      case PROPERTY_ASSIST_2_X:
+      case PROPERTY_ASSIST_2_Y:
+        buildAssistCurve();
+        break;
+      case PROPERTY_REGEN_1_X:
+      case PROPERTY_REGEN_1_Y:
+      case PROPERTY_REGEN_2_X:
+      case PROPERTY_REGEN_2_Y:
+        buildRegenCurve();
+        break;
+      case PROPERTY_SENSITIVITY_1_X:
+      case PROPERTY_SENSITIVITY_1_Y:
+      case PROPERTY_SENSITIVITY_2_X:
+      case PROPERTY_SENSITIVITY_2_Y:
+        buildSensitivityCurve();
         break;
     }
     
@@ -161,7 +179,9 @@ void performConnect() {
     BLEMini.write(i + FIRST_PROPERTY_IDENTIFIER);
     BLEMini.write(properties[i].value);
     BLEMini.write(properties[i].value >> 8);
-    delay(1);
+    Serial.print("i: ");
+    Serial.println(i);
+    delay(25);
   }
   
   /*

@@ -98,6 +98,15 @@ float riderEffort = 0;
 float strainDampingMultiplier = 0.0f;
 point strainDampingCurve[RESOLUTION];
 
+float assist = 0.0f;
+point assistCurve[RESOLUTION];
+
+float sensitivity = 0.0f;
+point sensitivityCurve[RESOLUTION];
+
+float regen = 0.0f;
+point regenCurve[RESOLUTION];
+
 boolean trqCmdTxFlag = false;
 
 //*****TrqMgmt Variables
@@ -135,7 +144,10 @@ void setup()
   
   constructBLESensors();
   constructBLEProperties();
-  rebuildStrainDampingCurve();
+  buildDampingCurve();
+  buildAssistCurve();
+  buildRegenCurve();
+  buildSensitivityCurve();
   
   Serial.println("SETUP COMPLETE");
 }

@@ -24,7 +24,7 @@ void manageDataProcessing() {
     uint16_t mappedSpeed = map(rxData[DAT_MTR_SPD], 0, 64, 0, UINT16_MAX);
     
     if (sensors[SENSOR_SPEED].value != mappedSpeed) {
-      recalculateBezierStrainDampingMultiplier();
+      //recalculateBezierStrainDampingMultiplier();
       
       sensors[SENSOR_SPEED].value = mappedSpeed;
       sensors[SENSOR_SPEED].isFresh = true;
@@ -99,7 +99,7 @@ void meadowsFilterAndTorqueAdvanced(byte newRiderTrq) {
   Serial.println("");
 }
 
-void recalculateBezierStrainDampingMultiplier() {
+/*void recalculateBezierStrainDampingMultiplier() {
   
   unsigned long timestamp = micros();
   
@@ -122,28 +122,145 @@ void recalculateBezierStrainDampingMultiplier() {
       break;
     }
   }
-}
+}*/
 
-void rebuildStrainDampingCurve() {
-  
-  point control1;
-  control1.x = map(properties[PROPERTY_STRAIN_DAMPING_CONTROL1_X].value, 0, UINT16_MAX, 0, 255);
-  control1.y = map(properties[PROPERTY_STRAIN_DAMPING_CONTROL1_Y].value, 0, UINT16_MAX, 0, 255);
-  
-  point control2;
-  control2.x = map(properties[PROPERTY_STRAIN_DAMPING_CONTROL2_X].value, 0, UINT16_MAX, 0, 255);
-  control2.y = map(properties[PROPERTY_STRAIN_DAMPING_CONTROL2_Y].value, 0, UINT16_MAX, 0, 255);
+void buildDampingCurve() {
+  Serial.println("Damping Curve: ");
   
   point startPoint = { 0, 0 };
   point endPoint = { 255, 255 };
+  
+  byte firstPropertyIdentifier = PROPERTY_STRAIN_DAMPING_CONTROL1_X;
+  
+  point control1;
+  control1.x = map(properties[firstPropertyIdentifier + 0].value, 0, UINT16_MAX, 0, 255);
+  control1.y = map(properties[firstPropertyIdentifier + 1].value, 0, UINT16_MAX, 0, 255);
+  
+  point control2;
+  control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
+  control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
   
   for (int i=0; i < RESOLUTION; ++i) {
     point p;
     float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
     bezier(p, startPoint, control1, control2, endPoint, t);
-    strainDampingCurve[i] = p;
+    strainDampingCurve[i].x = p.x;
+    strainDampingCurve[i].y = p.y;
+    Serial.print(p.x);
+    Serial.print(",");
+    Serial.println(p.y);
   }
 }
+
+void buildAssistCurve() {
+  
+  Serial.println("Assist Curve: ");
+  
+  point startPoint = { 0, 255 };
+  point endPoint = { 255, 0 };
+  
+  byte firstPropertyIdentifier = PROPERTY_ASSIST_1_X;
+  
+  point control1;
+  control1.x = map(properties[firstPropertyIdentifier + 0].value, 0, UINT16_MAX, 0, 255);
+  control1.y = map(properties[firstPropertyIdentifier + 1].value, 0, UINT16_MAX, 0, 255);
+  
+  point control2;
+  control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
+  control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
+  
+  for (int i=0; i < RESOLUTION; ++i) {
+    point p;
+    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
+    bezier(p, startPoint, control1, control2, endPoint, t);
+    assistCurve[i].x = p.x;
+    assistCurve[i].y = p.y;
+    Serial.print(p.x);
+    Serial.print(",");
+    Serial.println(p.y);
+  }
+}
+
+void buildRegenCurve() {
+  
+  Serial.println("Regen Curve: ");
+  
+  point startPoint = { 0, 0 };
+  point endPoint = { 255, 255 };
+  
+  byte firstPropertyIdentifier = PROPERTY_REGEN_1_X;
+  
+  point control1;
+  control1.x = map(properties[firstPropertyIdentifier + 0].value, 0, UINT16_MAX, 0, 255);
+  control1.y = map(properties[firstPropertyIdentifier + 1].value, 0, UINT16_MAX, 0, 255);
+  
+  point control2;
+  control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
+  control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
+  
+  for (int i=0; i < RESOLUTION; ++i) {
+    point p;
+    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
+    bezier(p, startPoint, control1, control2, endPoint, t);
+    regenCurve[i].x = p.x;
+    regenCurve[i].y = p.y;
+    Serial.print(p.x);
+    Serial.print(",");
+    Serial.println(p.y);
+  }
+}
+
+void buildSensitivityCurve() {
+  Serial.println("Sensitivity Curve: ");
+  
+  point startPoint = { 0, 255 };
+  point endPoint = { 255, 0 };
+  
+  byte firstPropertyIdentifier = PROPERTY_SENSITIVITY_1_X;
+  
+  point control1;
+  control1.x = map(properties[firstPropertyIdentifier + 0].value, 0, UINT16_MAX, 0, 255);
+  control1.y = map(properties[firstPropertyIdentifier + 1].value, 0, UINT16_MAX, 0, 255);
+  
+  point control2;
+  control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
+  control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
+  
+  for (int i=0; i < RESOLUTION; ++i) {
+    point p;
+    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
+    bezier(p, startPoint, control1, control2, endPoint, t);
+    sensitivityCurve[i].x = p.x;
+    sensitivityCurve[i].y = p.y;
+    Serial.print(p.x);
+    Serial.print(",");
+    Serial.println(p.y);
+  }
+}
+
+/*void buildBezierCurve(byte firstPropertyIdentifier, point startPoint, point endPoint, point &curve) {
+  
+  Serial.println(firstPropertyIdentifier);
+  
+  point control1;
+  control1.x = map(properties[firstPropertyIdentifier + 0].value, 0, UINT16_MAX, 0, 255);
+  control1.y = map(properties[firstPropertyIdentifier + 1].value, 0, UINT16_MAX, 0, 255);
+  
+  point control2;
+  control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
+  control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
+  
+  for (int i=0; i < RESOLUTION; ++i) {
+    point p;
+    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
+    bezier(p, startPoint, control1, control2, endPoint, t);
+    curve[i].x = p.x;
+    curve[i].y = p.y;
+    Serial.print(p.x);
+    Serial.print(",");
+    Serial.print(p.y);
+  }
+}*/
 
 // simple linear interpolation between two points
 void lerp(point &dest, const point &a, const point &b, const float t) {

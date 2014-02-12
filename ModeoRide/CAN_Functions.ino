@@ -2,10 +2,13 @@
 void performCANRX() {
   // READ A MESSAGE EVERY EXECUTION CYCLE, IF AVAILABLE
   if (!digitalRead(CAN_READY_PIN)) {                       // If pin 2 is low, read receive buffer
+  
 
     CAN.readMsgBuf(&rxLen, rxBuf);              // Read data: len = data length, buf = data byte(s)
     rxId = CAN.getCanId();                    // Get message ID
 
+    Serial.println("RX");
+    
     if (rxLen == 4)
     {
       for (int rxPointer = 0; rxPointer < 32; rxPointer++) {
@@ -73,9 +76,10 @@ void performPeriodicMessageSend(unsigned long now) {
   {
     if (fastTxPointer < (sizeof(fastTxMsgs) / sizeof(fastTxMsgs[0]))) {
       unsigned char txBuf[4] = {0, pgm_read_byte(&(fastTxMsgs[fastTxPointer][2])), 0, fastTxData[2]};
-      CAN.sendMsgBuf(pgm_read_byte(&(fastTxMsgs[fastTxPointer][0])), 0, pgm_read_byte(&(fastTxMsgs[fastTxPointer][1])), txBuf);
+     // Serial.println(CAN.sendMsgBuf(pgm_read_byte(&(fastTxMsgs[fastTxPointer][0])), 0, pgm_read_byte(&(fastTxMsgs[fastTxPointer][1])), txBuf));
 
       fastTxPointer++;
+        //  Serial.println("fastTX");
     }
     else {
       fastTxPointer = 0;
@@ -86,7 +90,7 @@ void performPeriodicMessageSend(unsigned long now) {
   if (trqCmdTxFlag && EnableCANTX)
   {
     unsigned char txBuf[4] = {0, 0x09, Temp_Var_For_Fwd_Twrk_UpperByte, Temp_Var_For_Fwd_Twrk_Msg};
-    CAN.sendMsgBuf(0x20, 0, 0x04, txBuf);
+   // CAN.sendMsgBuf(0x20, 0, 0x04, txBuf);
     trqCmdTxFlag = false;
   }
   
@@ -94,7 +98,7 @@ void performPeriodicMessageSend(unsigned long now) {
   {
     if (mediumTxPointer < (sizeof(mediumTxMsgs) / sizeof(mediumTxMsgs[0]))) {
       unsigned char txBuf[2] = {0, pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][2]))};
-      CAN.sendMsgBuf(pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][0])), 0, pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][1])), txBuf);
+     // CAN.sendMsgBuf(pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][0])), 0, pgm_read_byte(&(mediumTxMsgs[mediumTxPointer][1])), txBuf);
 
       mediumTxPointer++;
     }
@@ -108,7 +112,7 @@ void performPeriodicMessageSend(unsigned long now) {
   {
     if (slowTxPointer < (sizeof(slowTxMsgs) / sizeof(slowTxMsgs[0]))) {
       unsigned char txBuf[2] = {0, pgm_read_byte(&(slowTxMsgs[slowTxPointer][2]))};
-      CAN.sendMsgBuf(pgm_read_byte(&(slowTxMsgs[slowTxPointer][0])), 0, pgm_read_byte(&(slowTxMsgs[slowTxPointer][1])), txBuf);
+      Serial.println(CAN.sendMsgBuf(pgm_read_byte(&(slowTxMsgs[slowTxPointer][0])), 0, pgm_read_byte(&(slowTxMsgs[slowTxPointer][1])), txBuf));
 
       slowTxPointer++;
     }
@@ -122,5 +126,6 @@ void performPeriodicMessageSend(unsigned long now) {
   //canMsgTxStamp = now;
   //}
 }
+
 
 

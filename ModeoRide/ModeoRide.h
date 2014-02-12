@@ -6,6 +6,8 @@
 #define INDICATOR_LED_PIN 6
 #define WAKE_RELAY_PIN 7
 #define MARKER_PIN 4
+#define CHIP_SELECT_PIN 8
+
 //   END IO PINS
 
 #define UINT16_MAX 65535
@@ -140,7 +142,7 @@ AA
 
 #define FAST_TX_DELTA  10000
 #define MEDIUM_TX_DELTA 50000
-#define SLOW_TX_DELTA 1000000
+#define SLOW_TX_DELTA 2000000
  #define BLE_TX_DELTA 10000
 
  #define BLE_FAST_DELTA 50000
@@ -192,3 +194,4 @@ struct Sensor {
     byte x;
     byte y;
 };
+

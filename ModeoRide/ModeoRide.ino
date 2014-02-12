@@ -23,10 +23,11 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 #include <services.h>                 //  boards.h and services.h are old libraries for the fullsize BLE board
 #include <mcp_can.h>                    //  Awesome library for CAN board, specifically traceivers 
 //#include <MemoryFree.h>
-#include <AltSoftSerial.h>    			//  Serial comms library for communication with RedBear BLE Mini
+//#include <AltSoftSerial.h>    			//  Serial comms library for communication with RedBear BLE Mini
 #include <avr/pgmspace.h>
 // END LIBRARIES
 //#include <ble_mini.h>
+#include <Bounce2.h>
 
 #include "ModeoRide.h"                  //  Local headers, need to move constants here
 #include "CAN_Definitions.h"
@@ -35,6 +36,8 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 #include "EEPROM_Definitions.h"
 
 #include <EEPROM.h>
+
+Bounce debouncer = Bounce(); 
 
 //VARIABLE DECLARATIONS FOLLOW
 
@@ -46,7 +49,7 @@ PROGMEM prog_uchar bleArray [6] [19] = {
   {0xE0, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x0B},
   {0xF0, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x0A}, // 6 row, 19 col
 };
-
+ 
 byte bleFastPointer = 0;
 byte bleMedPointer = 0;
 byte bleSlowPointer = 0;
@@ -88,7 +91,7 @@ unsigned int CycleActionCnt = 0;
 
 // State management variables
 bool readyToStart = 1;
-bool EnableCANTX = 0;
+bool EnableCANTX = 1;
 bool EnableBluetoothTX = 0;
 bool EnableBluetoothRX = 0;
 byte trqAssistState = TRQ_ASSIST_OFF;
@@ -116,7 +119,7 @@ PROGMEM prog_uchar mediumTxMsgs[][3] = {  // ID, DLC, sigID
 
 PROGMEM prog_uchar slowTxMsgs[][3] = {
   {0x10, 0x02, 0x30},
-  {0x10, 0x02, 0x31},
+ /* {0x10, 0x02, 0x31},
   {0x10, 0x02, 0x33},
   {0x10, 0x02, 0x61},
   {0x10, 0x02, 0x80},
@@ -128,7 +131,7 @@ PROGMEM prog_uchar slowTxMsgs[][3] = {
   {0x10, 0x02, 0xA5},
   {0x20, 0x02, 0x12},
   {0x20, 0x02, 0x16},
-  {0x20, 0x02, 0x92},
+  {0x20, 0x02, 0x92},*/
 
 };
 
@@ -186,21 +189,28 @@ byte VBATT_THRESH = 0xA0;
 Sensor sensors[NUM_SENSORS];
 Property properties[NUM_PROPERTIES];
 
-AltSoftSerial BLEMini;
-//#define BLEMini Serial
+//AltSoftSerial BLEMini;
+#define BLEMini Serial
 
 
 //  setup() is called at startup
 void setup()
 {
+  
+  //delay(20000);
 
   Serial.begin(9600);    // Enable serial debug
-
-  pinMode(ON_OFF_SWITCH_PIN, INPUT);
+  delay(5000);
+  
+  
+  pinMode(ON_OFF_SWITCH_PIN, INPUT_PULLUP);
   pinMode(INDICATOR_LED_PIN, OUTPUT);
   pinMode(WAKE_RELAY_PIN, OUTPUT);
+   pinMode(CHIP_SELECT_PIN, OUTPUT);
   pinMode(CAN_READY_PIN, INPUT);
   pinMode(MARKER_PIN, INPUT);
+  
+  
 
   // Default to internally pull high, change it if you need
   //digitalWrite(DIGITAL_IN_PIN, HIGH);
@@ -208,11 +218,14 @@ void setup()
 
   CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx system
 
-  BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
+ // BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
   
   constructBLESensors();
   constructBLEProperties();
   rebuildStrainDampingCurve();
+  
+  debouncer.attach(ON_OFF_SWITCH_PIN);
+  debouncer.interval(50);
   
   Serial.println("SETUP COMPLETE");
 }
@@ -221,8 +234,11 @@ void setup()
 // MAIN LOOP
 void loop()
 {
-  
-  manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
+    debouncer.update();
+  manageVehicleState(debouncer.read());  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
+  //  Serial.print(debouncer.read());
+    
+    //    Serial.println(digitalRead(ON_OFF_SWITCH_PIN));
 
   managePhysicalIO();
 
@@ -288,6 +304,33 @@ void manageActionCounter() {
 }
 
 void manageVehicleState(bool switchValue) {
+ /*   if (readyToStart == 1)
+  {
+    activateBionx();  // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
+    readyToStart = 0;
+    EnableCANTX = 1;
+    EnableBluetoothTX = 1;
+    EnableBluetoothRX = 1;
+    Serial.println("ACTIVATE BIONX COMPLETE");
+    
+  }*/
+  
+  
+/*  if (readyToStart == 0 && switchValue ==1)
+  {
+    shutdownBionx();   // send the stop cmds to the battery and motor inverter if the switch is off while we were running
+    readyToStart = 1;
+    EnableCANTX = 0;
+    EnableBluetoothTX = 0;
+    EnableBluetoothRX = 0;
+    Serial.println("SHURTDOWN BIONX COMPLETE");
+    delay(2000);
+  }
+*/
+}
+
+/*
+void manageVehicleState(bool switchValue) {
   if (readyToStart == 1 && switchValue == HIGH)
   {
     activateBionx();  // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
@@ -307,4 +350,5 @@ void manageVehicleState(bool switchValue) {
      Serial.println("SHURTDOWN BIONX COMPLETE");
   }
 }
+*/
 

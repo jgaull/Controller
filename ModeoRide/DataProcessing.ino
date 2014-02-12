@@ -434,3 +434,4 @@ void removeStrokeAtIndex(byte index) {
     strokesLength--;
   }
 }
+

@@ -5,6 +5,18 @@ void activateBionx(){
      delay(1000);
      retrieveCalibrations();
      
+     buildDampingCurve();
+      buildAssistCurve();
+      buildRegenCurve();
+      buildSensitivityCurve();
+     
+     byte maxSpeed = 18;
+      for (byte i = 0; i < 18; i++) {
+        Serial.print("Speed: ");
+        Serial.println(i);
+        buildPowerOutputCurve(map(i, 0, maxSpeed, 0, 255));
+      }
+     
      //digitalWrite(WAKE_RELAY_PIN,LOW);
      digitalWrite(INDICATOR_LED_PIN, LOW);
      

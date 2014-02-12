@@ -24,7 +24,8 @@ void manageDataProcessing() {
     uint16_t mappedSpeed = map(rxData[DAT_MTR_SPD], 0, 64, 0, UINT16_MAX);
     
     if (sensors[SENSOR_SPEED].value != mappedSpeed) {
-      //recalculateBezierStrainDampingMultiplier();
+      recalculateBezierStrainDampingMultiplier();
+      //buildPowerOutputCurve();
       
       sensors[SENSOR_SPEED].value = mappedSpeed;
       sensors[SENSOR_SPEED].isFresh = true;
@@ -99,9 +100,9 @@ void meadowsFilterAndTorqueAdvanced(byte newRiderTrq) {
   Serial.println("");
 }
 
-/*void recalculateBezierStrainDampingMultiplier() {
+void recalculateBezierStrainDampingMultiplier() {
   
-  unsigned long timestamp = micros();
+  //unsigned long timestamp = micros();
   
   float maxMultiplier = 1;
   byte motorSpeed = constrain(rxData[DAT_MTR_SPD], 0, properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value);
@@ -122,11 +123,102 @@ void meadowsFilterAndTorqueAdvanced(byte newRiderTrq) {
       break;
     }
   }
-}*/
+}
+
+void buildPowerOutputCurve(byte motorSpeed) {
+  unsigned long timestamp = micros();
+  //Serial.println("power output");
+  
+  float maxMultiplier = 1;
+  uint16_t maxSpeed = 30;
+  /*byte motorSpeed = constrain(rxData[DAT_MTR_SPD], 0, maxSpeed);
+  motorSpeed = map(motorSpeed, 0, maxSpeed, 0, 255);*/
+  
+  point speed1 = { motorSpeed, 0 };
+  point speed2 = { motorSpeed, 255 };
+  
+  point assist;
+  point regen;
+  point sensitivity1;
+  point sensitivity2;
+  
+  /*
+  point assistCurve[RESOLUTION];
+  point sensitivityCurve[RESOLUTION];
+  point regenCurve[RESOLUTION];
+  point powerOutputCurve[RESOLUTION];
+  */
+  
+  for (int i = 0; i < RESOLUTION - 1; i++)
+  {
+    point curveSegment1 = assistCurve[i];
+    point curveSegment2 = assistCurve[i + 1];
+    
+    point result;
+    if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
+      assist.x = 255;
+      assist.y = result.y;
+      break;
+    }
+  }
+  
+  for (int i = 0; i < RESOLUTION - 1; i++)
+  {
+    point curveSegment1 = regenCurve[i];
+    point curveSegment2 = regenCurve[i + 1];
+    
+    point result;
+    if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
+      regen.x = 0;
+      regen.y = result.y;
+      break;
+    }
+  }
+  
+  for (int i = 0; i < RESOLUTION - 1; i++)
+  {
+    point curveSegment1 = sensitivityCurve[i];
+    point curveSegment2 = sensitivityCurve[i + 1];
+    
+    point result;
+    
+    if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
+      sensitivity1.x = result.x;
+      sensitivity1.y = regen.y;
+      
+      sensitivity2.x = result.x;
+      sensitivity2.y = assist.y;
+      break;
+    }
+  }
+  
+  point startPoint = regen;
+  point endPoint = assist;
+  
+  point control1 = sensitivity1;
+  point control2 = sensitivity2;
+  
+  for (int i=0; i < RESOLUTION; ++i) {
+    point p;
+    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
+    bezier(p, startPoint, control1, control2, endPoint, t);
+    powerOutputCurve[i].x = p.x;
+    powerOutputCurve[i].y = p.y;
+    
+    Serial.print(p.x);
+    Serial.print(",");
+    Serial.println(p.y);
+  }
+  
+  //Serial.print("duration: ");
+  //Serial.println(micros() - timestamp);
+}
+
+byte calculatePowerOutput() {
+  
+}
 
 void buildDampingCurve() {
-  Serial.println("Damping Curve: ");
-  
   point startPoint = { 0, 0 };
   point endPoint = { 255, 255 };
   
@@ -146,16 +238,10 @@ void buildDampingCurve() {
     bezier(p, startPoint, control1, control2, endPoint, t);
     strainDampingCurve[i].x = p.x;
     strainDampingCurve[i].y = p.y;
-    Serial.print(p.x);
-    Serial.print(",");
-    Serial.println(p.y);
   }
 }
 
 void buildAssistCurve() {
-  
-  Serial.println("Assist Curve: ");
-  
   point startPoint = { 0, 255 };
   point endPoint = { 255, 0 };
   
@@ -169,12 +255,23 @@ void buildAssistCurve() {
   control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
   control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
   
+  Serial.print("control1: ");
+  Serial.print(control1.x);
+  Serial.print(", ");
+  Serial.println(control1.y);
+  
+  Serial.print("control2: ");
+  Serial.print(control2.x);
+  Serial.print(", ");
+  Serial.println(control2.y);
+  
   for (int i=0; i < RESOLUTION; ++i) {
     point p;
     float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
     bezier(p, startPoint, control1, control2, endPoint, t);
     assistCurve[i].x = p.x;
     assistCurve[i].y = p.y;
+    
     Serial.print(p.x);
     Serial.print(",");
     Serial.println(p.y);
@@ -182,9 +279,6 @@ void buildAssistCurve() {
 }
 
 void buildRegenCurve() {
-  
-  Serial.println("Regen Curve: ");
-  
   point startPoint = { 0, 0 };
   point endPoint = { 255, 255 };
   
@@ -204,15 +298,10 @@ void buildRegenCurve() {
     bezier(p, startPoint, control1, control2, endPoint, t);
     regenCurve[i].x = p.x;
     regenCurve[i].y = p.y;
-    Serial.print(p.x);
-    Serial.print(",");
-    Serial.println(p.y);
   }
 }
 
 void buildSensitivityCurve() {
-  Serial.println("Sensitivity Curve: ");
-  
   point startPoint = { 0, 255 };
   point endPoint = { 255, 0 };
   
@@ -232,9 +321,6 @@ void buildSensitivityCurve() {
     bezier(p, startPoint, control1, control2, endPoint, t);
     sensitivityCurve[i].x = p.x;
     sensitivityCurve[i].y = p.y;
-    Serial.print(p.x);
-    Serial.print(",");
-    Serial.println(p.y);
   }
 }
 

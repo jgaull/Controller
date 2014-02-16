@@ -5,7 +5,7 @@
 #define ON_OFF_SWITCH_PIN 5
 #define INDICATOR_LED_PIN 6
 #define WAKE_RELAY_PIN 7
-#define MARKER_PIN 4
+#define SWITCH_LED_PIN 4
 //   END IO PINS
 
 #define UINT16_MAX 65535

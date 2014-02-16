@@ -25,7 +25,7 @@ void manageDataProcessing() {
     
     if (sensors[SENSOR_SPEED].value != mappedSpeed) {
       recalculateBezierStrainDampingMultiplier();
-      //buildPowerOutputCurve();
+      buildPowerOutputCurve();
       
       sensors[SENSOR_SPEED].value = mappedSpeed;
       sensors[SENSOR_SPEED].isFresh = true;
@@ -100,9 +100,40 @@ void meadowsFilterAndTorqueAdvanced(byte newRiderTrq) {
   Serial.println("");
 }
 
+short calculatePowerOutput(float effort) {
+  
+  byte mappedEffort = constrain(effort, 0, properties[PROPERTY_MAX_EFFORT].value);
+  mappedEffort = map(effort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 255);
+  
+  point effort1 = { mappedEffort, 0 };
+  point effort2 = { mappedEffort, 255 };
+  
+  short powerOutput = 0;
+  
+  for (int i = 0; i < RESOLUTION - 1; i++)
+  {
+    point curveSegment1 = powerOutputCurve[i];
+    point curveSegment2 = powerOutputCurve[i + 1];
+    
+    point result;
+    
+    if (i == 0 && curveSegment1.x == effort1.x) {
+      powerOutput = curveSegment1.y - 127;
+      return powerOutput;
+    }
+    
+    if (intersectionOfLineFrom(curveSegment1, curveSegment2, effort1, effort2, result)) {
+      powerOutput = result.y - 127;
+      return powerOutput;
+    }
+  }
+  
+  return 0;
+}
+
 void recalculateBezierStrainDampingMultiplier() {
   
-  //unsigned long timestamp = micros();
+  unsigned long timestamp = micros();
   
   float maxMultiplier = 1;
   byte motorSpeed = constrain(rxData[DAT_MTR_SPD], 0, properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value);
@@ -125,14 +156,14 @@ void recalculateBezierStrainDampingMultiplier() {
   }
 }
 
-void buildPowerOutputCurve(byte motorSpeed) {
-  unsigned long timestamp = micros();
+void buildPowerOutputCurve() {
+  //unsigned long timestamp = micros();
   //Serial.println("power output");
   
   float maxMultiplier = 1;
   uint16_t maxSpeed = 30;
-  /*byte motorSpeed = constrain(rxData[DAT_MTR_SPD], 0, maxSpeed);
-  motorSpeed = map(motorSpeed, 0, maxSpeed, 0, 255);*/
+  byte motorSpeed = constrain(rxData[DAT_MTR_SPD], 0, maxSpeed);
+  motorSpeed = map(motorSpeed, 0, maxSpeed, 0, 255);
   
   point speed1 = { motorSpeed, 0 };
   point speed2 = { motorSpeed, 255 };
@@ -157,7 +188,7 @@ void buildPowerOutputCurve(byte motorSpeed) {
     point result;
     if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
       assist.x = 255;
-      assist.y = result.y;
+      assist.y = map(result.y, 0, 255, 127, 255);
       break;
     }
   }
@@ -170,7 +201,7 @@ void buildPowerOutputCurve(byte motorSpeed) {
     point result;
     if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
       regen.x = 0;
-      regen.y = result.y;
+      regen.y = map(result.y, 0, 255, 127, 0);
       break;
     }
   }
@@ -183,6 +214,7 @@ void buildPowerOutputCurve(byte motorSpeed) {
     point result;
     
     if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
+      result.x = constrain(result.x, 1, 254);
       sensitivity1.x = result.x;
       sensitivity1.y = regen.y;
       
@@ -204,18 +236,7 @@ void buildPowerOutputCurve(byte motorSpeed) {
     bezier(p, startPoint, control1, control2, endPoint, t);
     powerOutputCurve[i].x = p.x;
     powerOutputCurve[i].y = p.y;
-    
-    Serial.print(p.x);
-    Serial.print(",");
-    Serial.println(p.y);
   }
-  
-  //Serial.print("duration: ");
-  //Serial.println(micros() - timestamp);
-}
-
-byte calculatePowerOutput() {
-  
 }
 
 void buildDampingCurve() {
@@ -242,6 +263,7 @@ void buildDampingCurve() {
 }
 
 void buildAssistCurve() {
+  //Serial.println("Assist");
   point startPoint = { 0, 255 };
   point endPoint = { 255, 0 };
   
@@ -255,30 +277,22 @@ void buildAssistCurve() {
   control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
   control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
   
-  Serial.print("control1: ");
-  Serial.print(control1.x);
-  Serial.print(", ");
-  Serial.println(control1.y);
-  
-  Serial.print("control2: ");
-  Serial.print(control2.x);
-  Serial.print(", ");
-  Serial.println(control2.y);
-  
   for (int i=0; i < RESOLUTION; ++i) {
     point p;
     float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
     bezier(p, startPoint, control1, control2, endPoint, t);
     assistCurve[i].x = p.x;
     assistCurve[i].y = p.y;
-    
+    /*
     Serial.print(p.x);
     Serial.print(",");
     Serial.println(p.y);
+    */
   }
 }
 
 void buildRegenCurve() {
+  //Serial.println("Regen");
   point startPoint = { 0, 0 };
   point endPoint = { 255, 255 };
   
@@ -298,10 +312,17 @@ void buildRegenCurve() {
     bezier(p, startPoint, control1, control2, endPoint, t);
     regenCurve[i].x = p.x;
     regenCurve[i].y = p.y;
+    
+    /*
+    Serial.print(p.x);
+    Serial.print(",");
+    Serial.println(p.y);
+    */
   }
 }
 
 void buildSensitivityCurve() {
+  //Serial.println("Sensitivity");
   point startPoint = { 0, 255 };
   point endPoint = { 255, 0 };
   
@@ -321,6 +342,11 @@ void buildSensitivityCurve() {
     bezier(p, startPoint, control1, control2, endPoint, t);
     sensitivityCurve[i].x = p.x;
     sensitivityCurve[i].y = p.y;
+    /*
+    Serial.print(p.x);
+    Serial.print(",");
+    Serial.println(p.y);
+    */
   }
 }
 
@@ -561,11 +587,21 @@ void handleStrainMessage(byte newStrain) {
   riderEffort = smooth(dampenedStrain, riderEffort, filterAmount);
   
   float multiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
-  float multipliedEffort = multiplier * riderEffort;
-  multipliedEffort = round(constrain(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value));
-  byte torque = map(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
+  //float multipliedEffort = multiplier * riderEffort;
+  //multipliedEffort = round(constrain(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value));
+  
+  short powerOutput = calculatePowerOutput(riderEffort);
+  powerOutput = map(powerOutput, -127, 128, -63, 64);
+  short powerOutputSensorValue = powerOutput;
+  powerOutput *= multiplier;
+  byte torque = constrain(powerOutput, 0, 64);
+  Serial.print("torque: ");
+  Serial.println(torque);
   
   //A bunch of shit for sensor managers.
+  sensors[SENSOR_POWER_OUTPUT].value = map(powerOutputSensorValue, -127, 128, 0, UINT16_MAX);
+  sensors[SENSOR_POWER_OUTPUT].isFresh = true;
+  
   float riderEffortSensorValue = constrain(riderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
   uint16_t riderEffortValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
   sensors[SENSOR_RIDER_EFFORT].value = riderEffortValue;
@@ -577,11 +613,11 @@ void handleStrainMessage(byte newStrain) {
   sensors[SENSOR_CURRENT_STRAIN].isFresh = true;
   
   byte rawStrainSensorValue = map(strainDelta, 0, 64, 0, UINT16_MAX);
-  sensors[SENSOR_RAW_STRAIN].value = 0;
+  sensors[SENSOR_RAW_STRAIN].value = rawStrainSensorValue;
   sensors[SENSOR_RAW_STRAIN].isFresh = true;
   
   byte torqueAppliedSensorValue = map(torque, 0, 64, 0, UINT16_MAX);
-  sensors[SENSOR_TORQUE_APPLIED].value = 0;
+  sensors[SENSOR_TORQUE_APPLIED].value = torqueAppliedSensorValue;
   sensors[SENSOR_TORQUE_APPLIED].isFresh = true;
   //end a bunch of shit for sensor managers
   

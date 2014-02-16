@@ -2,20 +2,8 @@ void activateBionx(){
      //digitalWrite(WAKE_RELAY_PIN,HIGH);
      digitalWrite(INDICATOR_LED_PIN, HIGH);
      
-     delay(1000);
+     //delay(1000);
      retrieveCalibrations();
-     
-     buildDampingCurve();
-      buildAssistCurve();
-      buildRegenCurve();
-      buildSensitivityCurve();
-     
-     byte maxSpeed = 18;
-      for (byte i = 0; i < 18; i++) {
-        Serial.print("Speed: ");
-        Serial.println(i);
-        buildPowerOutputCurve(map(i, 0, maxSpeed, 0, 255));
-      }
      
      //digitalWrite(WAKE_RELAY_PIN,LOW);
      digitalWrite(INDICATOR_LED_PIN, LOW);
@@ -112,6 +100,12 @@ void activateBionx(){
     txBuf[1]= 0x00;
     txBuf[1]= 0xFC;
     CAN.sendMsgBuf(0x10, 0, 0x2, txBuf);
+    
+    buildDampingCurve();
+    buildAssistCurve();
+    buildRegenCurve();
+    buildSensitivityCurve();
+    buildPowerOutputCurve();
 }
 
 

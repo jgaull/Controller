@@ -216,6 +216,7 @@ void constructBLESensors() {
   sensors[SENSOR_TORQUE_APPLIED].propertyAddress = PROPERTY_SENSOR_TORQUE_APPLIED_STATE;
   sensors[SENSOR_MOTOR_TEMP].propertyAddress = PROPERTY_SENSOR_MOTOR_TEMP_STATE;
   sensors[SENSOR_BATTERY_VOLTAGE].propertyAddress = PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE;
+  sensors[SENSOR_POWER_OUTPUT].propertyAddress = PROPERTY_SENSOR_POWER_OUTPUT_STATE;
 }
 
 void constructBLEProperties() {
@@ -231,6 +232,7 @@ void constructBLEProperties() {
   properties[PROPERTY_SENSOR_TORQUE_APPLIED_STATE].eepromSave = false;
   properties[PROPERTY_SENSOR_MOTOR_TEMP_STATE].eepromSave = false;
   properties[PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_POWER_OUTPUT_STATE].eepromSave = false;
   properties[PROPERTY_TORQUE_MULTIPLIER].eepromSave = false;
 }
 

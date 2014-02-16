@@ -124,11 +124,11 @@ void setup()
 
   Serial.begin(9600);    // Enable serial debug
 
-  pinMode(ON_OFF_SWITCH_PIN, INPUT);
+  pinMode(ON_OFF_SWITCH_PIN, INPUT_PULLUP);
   pinMode(INDICATOR_LED_PIN, OUTPUT);
   pinMode(WAKE_RELAY_PIN, OUTPUT);
   pinMode(CAN_READY_PIN, INPUT);
-  pinMode(MARKER_PIN, INPUT);
+  pinMode(SWITCH_LED_PIN, OUTPUT);
 
   // Default to internally pull high, change it if you need
   //digitalWrite(DIGITAL_IN_PIN, HIGH);
@@ -148,7 +148,7 @@ void setup()
 // MAIN LOOP
 void loop()
 {
-  
+  digitalWrite(SWITCH_LED_PIN, HIGH);
   manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
 
   managePhysicalIO();
@@ -224,7 +224,7 @@ void manageVehicleState(bool switchValue) {
     EnableBluetoothRX = 1;
     Serial.println("ACTIVATE BIONX COMPLETE");
   }
-  else if (readyToStart == 0 && switchValue == LOW)
+  else if (readyToStart == 0 && switchValue == HIGH)
   {
     shutdownBionx();   // send the stop cmds to the battery and motor inverter if the switch is off while we were running
     readyToStart = 1;

@@ -1,32 +1,22 @@
-
-
 //   IO PIN DEFINITIONS
 #define CAN_READY_PIN 2
 #define ON_OFF_SWITCH_PIN 5
 #define INDICATOR_LED_PIN 6
 #define WAKE_RELAY_PIN 7
 #define SWITCH_LED_PIN 4
-//   END IO PINS
-
-#define UINT16_MAX 65535
-
-
-#define MAX_STROKE_LENGTH 30
-
-
-
-
 
 //	State definitions
 #define TRQ_ASSIST_OFF 0
 #define TRQ_ASSIST_ON 1
-//	End state definitions
+
+#define VEHICLE_OFF 0
+#define VEHICLE_ON 1
 
 //  Constants for configuration of the strain characterization algorithm
 #define NUM_AVERAGED_STROKES 3
 #define MAX_STORED_STROKES 3
 #define MAX_DAMPING_MULTIPLIER 1
-#define SMOOTHING_DIVISOR 65535
+#define MAX_STROKE_LENGTH 30
 #define RESOLUTION 10
 //   END Constants for configuration of the strain characterization algorithm
 
@@ -107,3 +97,6 @@ struct Sensor {
     byte x;
     byte y;
 };
+
+//Helpful
+#define UINT16_MAX 65535

@@ -45,9 +45,6 @@ bool rxDataIsFresh[32] = {0};
 byte Temp_Var_For_Fwd_Twrk_Msg;
 byte Temp_Var_For_Fwd_Twrk_UpperByte;
 
-
-
-
 byte rxLen = 0;
 byte rxBuf[8];
 
@@ -69,11 +66,8 @@ unsigned int CycleActionCnt = 0;
 
 
 // State management variables
-bool readyToStart = 1;
-bool EnableCANTX = 0;
-bool EnableBluetoothTX = 0;
-bool EnableBluetoothRX = 0;
 byte trqAssistState = TRQ_ASSIST_OFF;
+byte vehicleState = VEHICLE_OFF;
 
 long unsigned int rxId;
 long unsigned int txId;
@@ -114,6 +108,8 @@ byte VBATT_THRESH = 0xA0;
 Sensor sensors[NUM_SENSORS];
 Property properties[NUM_PROPERTIES];
 
+boolean lastButtonState = false;
+
 AltSoftSerial BLEMini;
 //#define BLEMini Serial
 
@@ -121,7 +117,6 @@ AltSoftSerial BLEMini;
 //  setup() is called at startup
 void setup()
 {
-
   Serial.begin(9600);    // Enable serial debug
 
   pinMode(ON_OFF_SWITCH_PIN, INPUT_PULLUP);
@@ -130,16 +125,16 @@ void setup()
   pinMode(CAN_READY_PIN, INPUT);
   pinMode(SWITCH_LED_PIN, OUTPUT);
 
-  // Default to internally pull high, change it if you need
-  //digitalWrite(DIGITAL_IN_PIN, HIGH);
-  //digitalWrite(DIGITAL_IN_PIN, LOW);
-
   CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx system
 
   BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
   
   constructBLESensors();
   constructBLEProperties();
+  
+  lastButtonState = digitalRead(ON_OFF_SWITCH_PIN);
+  
+  activateBionx();
   
   Serial.println("SETUP COMPLETE");
 }
@@ -148,29 +143,24 @@ void setup()
 // MAIN LOOP
 void loop()
 {
-  digitalWrite(SWITCH_LED_PIN, HIGH);
-  manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
-
-  managePhysicalIO();
-
-  performCANRX();
-
   unsigned long now = micros();
-
-  // performBluetoothSend(now);
-
-  performBluetoothSend1();
-
+  
+  manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
+  
+  performCANRX();
+  
+  performBluetoothSend();
+  
   performBluetoothReceive();
   
   performPeriodicMessageSend(now);
-
+  
   manageTxTimers(now);
   
   manageDataProcessing();
 
   //performSerialDebugging();
-
+  
   manageActionCounter();
   
   /*
@@ -215,23 +205,21 @@ void manageActionCounter() {
 }
 
 void manageVehicleState(bool switchValue) {
-  if (readyToStart == 1 && switchValue == HIGH)
-  {
-    activateBionx();  // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
-    readyToStart = 0;
-    EnableCANTX = 1;
-    EnableBluetoothTX = 1;
-    EnableBluetoothRX = 1;
-    Serial.println("ACTIVATE BIONX COMPLETE");
+  if (lastButtonState != switchValue) {
+    
+    if (vehicleState == VEHICLE_OFF && switchValue == HIGH) {
+      activateBionx(); // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
+      Serial.println("ACTIVATE BIONX COMPLETE");
+    }
+    else if (vehicleState == VEHICLE_ON && switchValue == HIGH) {
+      shutdownBionx(); // send the stop cmds to the battery and motor inverter if the switch is off while we were running
+      Serial.println("SHUTDOWN BIONX COMPLETE");
+    }
+    
+    lastButtonState = switchValue;
+    delay(1); //debounce
   }
-  else if (readyToStart == 0 && switchValue == HIGH)
-  {
-    shutdownBionx();   // send the stop cmds to the battery and motor inverter if the switch is off while we were running
-    readyToStart = 1;
-    EnableCANTX = 0;
-    EnableBluetoothTX = 0;
-    EnableBluetoothRX = 0;
-     Serial.println("SHURTDOWN BIONX COMPLETE");
-  }
+  
+  digitalWrite(SWITCH_LED_PIN, vehicleState == VEHICLE_ON);
 }
 

@@ -3,7 +3,7 @@ unsigned long fastTxStamp = 0;
 unsigned long mediumTxStamp = 0;
 unsigned long slowTxStamp = 0;
 
-#define CANMSG_TX_DELTA   2000
+#define CANMSG_TX_DELTA   3000
 #define FAST_TX_DELTA     10000
 #define MEDIUM_TX_DELTA   50000
 #define SLOW_TX_DELTA     1000000
@@ -59,13 +59,13 @@ byte fastTxPointer = 0;
 PROGMEM prog_uchar fastTxMsgs[][3] = {  // ID, DLC, sigID
   {0x20, 0x02, 0x11},
   {0x20, 0x04, 0x0A},
-//  {0x20, 0x02, 0x21},
+  {0x20, 0x02, 0x21},
 
 };
 byte fastTxData [(sizeof(fastTxMsgs) / sizeof(fastTxMsgs[0]))] = {0};
 
 PROGMEM prog_uchar mediumTxMsgs[][3] = {  // ID, DLC, sigID
-  {0x20, 0x02, 0x21},
+//  {0x20, 0x02, 0x21},
   {0x58, 0x02, 0x9C},
   {0x10, 0x02, 0x32},
   {0x10, 0x02, 0x9A},

@@ -20,7 +20,6 @@ void manageDataProcessing() {
   }
   
   if (rxDataIsFresh[DAT_MTR_SPD]) {
-    
     uint16_t mappedSpeed = map(rxData[DAT_MTR_SPD], 0, 64, 0, UINT16_MAX);
     
     if (sensors[SENSOR_SPEED].value != mappedSpeed) {
@@ -36,7 +35,7 @@ void manageDataProcessing() {
  
 }
 
-void meadowsFilterAndTorque(byte newRiderTrq) {
+/*void meadowsFilterAndTorque(byte newRiderTrq) {
   if (meadowsStrainBuffer < 10) {
     meadowsStrainBuffer = (meadowsStrainBuffer+ newRiderTrq) / 2;
   }
@@ -98,7 +97,7 @@ void meadowsFilterAndTorqueAdvanced(byte newRiderTrq) {
   Serial.print(",");
   Serial.print(micros());
   Serial.println("");
-}
+}*/
 
 short calculatePowerOutput(float effort) {
   
@@ -574,7 +573,7 @@ void handleStrainMessage(byte newStrain) {
   
   //Map will allow values above and below the max. I'm currently leaving them unconstrained.
   float filterAmount = map(properties[PROPERTY_MAX_OUTPUT].value - strainDiff, 0, properties[PROPERTY_MAX_OUTPUT].value, properties[PROPERTY_SMOOTHING_MIN].value, properties[PROPERTY_SMOOTHING_MAX].value);
-  filterAmount /= (float)SMOOTHING_DIVISOR; //because map only works with round numbers.
+  filterAmount /= (float)UINT16_MAX; //because map only works with round numbers.
   
   byte filterMultiplier = 1;
   if (cyclesSinceLastStroke > properties[PROPERTY_STROKE_TIMEOUT_CYCLES].value) {
@@ -595,8 +594,6 @@ void handleStrainMessage(byte newStrain) {
   short powerOutputSensorValue = powerOutput;
   powerOutput *= multiplier;
   byte torque = constrain(powerOutput, 0, 64);
-  Serial.print("torque: ");
-  Serial.println(torque);
   
   //A bunch of shit for sensor managers.
   sensors[SENSOR_POWER_OUTPUT].value = map(powerOutputSensorValue, -127, 128, 0, UINT16_MAX);

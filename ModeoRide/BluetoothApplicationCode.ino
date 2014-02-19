@@ -1,38 +1,4 @@
-/*void performBluetoothSend(unsigned long now) {
-   // manage BLE counter 
-   // 50 ms fast, 200 ms med, 1000 ms slow
- 
-  // check for switch on and CAN rx code indicating ready to transmit
- 
- 
- if (EnableBluetoothTX)
-  {
-     if ((now >= bleFastStamp+BLE_FAST_DELTA) || ((now < bleFastStamp) && ((4294967295 - (bleFastStamp + now))>=BLE_FAST_DELTA))){
-
-      writeBLEmsg(0x00, bleFastPointer);
-      bleFastStamp = now;
-      bleFastPointer++;
-      if (bleFastPointer>=6){bleFastPointer=0;}
-   }
-     if ((now >= bleMedStamp+BLE_MED_DELTA) || ((now < bleMedStamp) && ((4294967295 - (bleMedStamp + now))>=BLE_MED_DELTA))){
-
-      writeBLEmsg(0x00, bleMedPointer);
-      bleMedStamp = now;
-      bleMedPointer++;
-      if (bleMedPointer>=6){bleMedPointer=0;}
-   }   
-       if ((now >= bleSlowStamp+BLE_SLOW_DELTA) || ((now < bleSlowStamp) && ((4294967295 - (bleSlowStamp + now))>=BLE_SLOW_DELTA))){
-
-      writeBLEmsg(0x00, bleSlowPointer);
-      bleSlowStamp = now;
-      bleSlowPointer++;
-      if (bleSlowPointer>=6){bleSlowPointer=0;}
-   }
-  
-  }
-}*/
-
-void performBluetoothSend1() {
+void performBluetoothSend() {
   
   boolean hasSentValue = false;
   
@@ -52,36 +18,6 @@ void performBluetoothSend1() {
   
   digitalWrite(INDICATOR_LED_PIN, hasSentValue);
 }
-
-/*
-void writeBLEmsg(byte msgID, byte arrayPointer){
-  
-  
-      BLEMini.write(msgID);
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][1])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][1])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][2])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][3])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][4])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][5])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][6])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][7])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][8])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][9])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][10])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][11])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][12])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][13])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][14])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][15])));    
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][16])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][17])));
-    BLEMini.write(pgm_read_byte(&(bleArray[arrayPointer][18])));
-}
-*/
-
-
-
 
 void performBluetoothReceive() {
   

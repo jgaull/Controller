@@ -1,6 +1,6 @@
 void retrieveCalibrations(){
   
-  Serial.println("Started property restore");
+  //Serial.println("Started property restore");
  
   byte propertyCount = 0;
   for (byte i = 0; i < NUM_PROPERTIES; i++) {
@@ -13,14 +13,16 @@ void retrieveCalibrations(){
     }
   }
   
+  /*
   Serial.print("Restored ");
   Serial.print(propertyCount);
   Serial.println(" properties.");
+  */
 }
 
 
 void storeCalibrations() {
-  Serial.println("Started property save");
+  //Serial.println("Started property save");
   
   byte propertyCount = 0;
   for (byte i = 0; i < NUM_PROPERTIES; i++) {
@@ -34,9 +36,11 @@ void storeCalibrations() {
     }
   }
   
+  /*
   Serial.print("Saved ");
   Serial.print(propertyCount);
   Serial.println(" properties.");
+  */
 }
 
 

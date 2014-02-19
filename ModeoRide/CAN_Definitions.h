@@ -8,10 +8,7 @@ unsigned long slowTxStamp = 0;
 #define MEDIUM_TX_DELTA   50000
 #define SLOW_TX_DELTA     1000000
 
-
 unsigned long canMsgTxStamp = 0;
-
-
 
 bool fastTxFlag = 0;
 bool mediumTxFlag = 0;
@@ -54,14 +51,26 @@ byte fastTxPointer = 0;
 #define DAT_BAT_0xFB    30
 #define DAT_BAT_0xFC    31
 
-
+#define CMD_MTR_0x02_ID         0x02    //  unknown cmd sent at start
+#define CMD_MTR_TRQ_ID          0x09    //  torque cmd
+#define MTR_SPEED_ID 		0x11    //  motor speed data req
+#define MTR_0x12_ID             0x12    //  unknown data req, sent at ~1sec
+#define MTR_TRQ_ID              0x14    //  real torque reported by motor
+#define MTR_TEMP_ID             0x16    //  unknown data req, sent at ~1sec
+#define MTR_0x20_ID     	0x20    //  unknown data req, sent at startup, always 0x64 resp
+#define MTR_PEDSTRAIN_ID 	0x21    //  strain from the bionx torque sensor
+#define CMD_MTR_0x22_ID 	0x22    //  unknown cmd, set at start with 00 00 byte2-3
+#define CMD_BATT_SHTDWN_ID      0x25    //  the shutdown command to the battery
+#define BATT_V_ID               0x32    //  
+#define CMD_0x41_ID             0x41
+#define CMD_0x42_ID             0x42
 
 PROGMEM prog_uchar fastTxMsgs[][3] = {  // ID, DLC, sigID
   {0x20, 0x02, 0x11},
   {0x20, 0x04, 0x0A},
   {0x20, 0x02, 0x21},
-
 };
+
 byte fastTxData [(sizeof(fastTxMsgs) / sizeof(fastTxMsgs[0]))] = {0};
 
 PROGMEM prog_uchar mediumTxMsgs[][3] = {  // ID, DLC, sigID

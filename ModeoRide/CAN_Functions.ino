@@ -85,7 +85,7 @@ void performPeriodicMessageSend(unsigned long now) {
     }
   
     if (trqCmdTxFlag) {
-      unsigned char txBuf[4] = {0, 0x09, Temp_Var_For_Fwd_Twrk_UpperByte, Temp_Var_For_Fwd_Twrk_Msg};
+      unsigned char txBuf[4] = {0, CMD_MTR_TRQ_ID, Temp_Var_For_Fwd_Twrk_UpperByte, Temp_Var_For_Fwd_Twrk_Msg};
       CAN.sendMsgBuf(0x20, 0, 0x04, txBuf);
       delay(1);
       trqCmdTxFlag = false;

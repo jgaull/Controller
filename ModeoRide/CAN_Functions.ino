@@ -41,7 +41,6 @@ void manageTxTimers(unsigned long now) {
   if ((now >= mediumTxStamp + MEDIUM_TX_DELTA) || ((now < mediumTxStamp) && ((4294967295 - (mediumTxStamp + now)) >= MEDIUM_TX_DELTA))) {
     mediumTxStamp = now;
     mediumTxFlag = 1;
-    trqCmdTxFlag = 1;
   }
 
   if ((now >= slowTxStamp + SLOW_TX_DELTA) || ((now < slowTxStamp) && ((4294967295 - (slowTxStamp + now)) >= SLOW_TX_DELTA))) {
@@ -53,8 +52,11 @@ void manageTxTimers(unsigned long now) {
     fastTxStamp = now;
     fastTxFlag = 1;
   }
-
-
+  
+  if ((now >= torqueTxStamp + TORQUE_TX_DELTA) || ((now < torqueTxStamp) && ((4294967295 - (torqueTxStamp + now)) >= TORQUE_TX_DELTA))) {
+    torqueTxStamp = now;
+    trqCmdTxFlag = 1;
+  }
 }
 
 
@@ -71,9 +73,16 @@ void performPeriodicMessageSend(unsigned long now) {
   
   if (vehicleState == VEHICLE_ON) {
     
+    if (trqCmdTxFlag) {
+      unsigned char txBuf[4] = {0, CMD_MTR_TRQ_ID, Temp_Var_For_Fwd_Twrk_UpperByte, Temp_Var_For_Fwd_Twrk_Msg};
+      CAN.sendMsgBuf(0x20, 0, 0x04, txBuf);
+      delay(1);
+      trqCmdTxFlag = false;
+    }
+    
     if (fastTxFlag) {
       if (fastTxPointer < (sizeof(fastTxMsgs) / sizeof(fastTxMsgs[0]))) {
-        unsigned char txBuf[4] = {0, pgm_read_byte(&(fastTxMsgs[fastTxPointer][2])), 0, fastTxData[2]};
+        unsigned char txBuf[2] = { 0, pgm_read_byte(&(fastTxMsgs[fastTxPointer][2])) };
         CAN.sendMsgBuf(pgm_read_byte(&(fastTxMsgs[fastTxPointer][0])), 0, pgm_read_byte(&(fastTxMsgs[fastTxPointer][1])), txBuf);
         delay(1);
         fastTxPointer++;
@@ -82,13 +91,6 @@ void performPeriodicMessageSend(unsigned long now) {
         fastTxPointer = 0;
         fastTxFlag = 0;
       }
-    }
-  
-    if (trqCmdTxFlag) {
-      unsigned char txBuf[4] = {0, CMD_MTR_TRQ_ID, Temp_Var_For_Fwd_Twrk_UpperByte, Temp_Var_For_Fwd_Twrk_Msg};
-      CAN.sendMsgBuf(0x20, 0, 0x04, txBuf);
-      delay(1);
-      trqCmdTxFlag = false;
     }
     
     if (mediumTxFlag) {

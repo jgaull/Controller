@@ -33,7 +33,6 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 #include "CAN_Definitions.h"
 #include "BLE_Definitions.h"
 #include "DataProcessing_Definitions.h"
-#include "EEPROM_Definitions.h"
 
 
 //VARIABLE DECLARATIONS FOLLOW

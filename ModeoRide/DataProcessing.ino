@@ -102,7 +102,7 @@ void meadowsFilterAndTorqueAdvanced(byte newRiderTrq) {
 short calculatePowerOutput(float effort) {
   
   byte mappedEffort = constrain(effort, 0, properties[PROPERTY_MAX_EFFORT].value);
-  mappedEffort = map(effort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 255);
+  mappedEffort = map(mappedEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 255);
   
   point effort1 = { mappedEffort, 0 };
   point effort2 = { mappedEffort, 255 };

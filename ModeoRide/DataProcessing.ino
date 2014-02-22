@@ -583,13 +583,11 @@ void handleStrainMessage(byte newStrain) {
     filterMultiplier = 0;
   }
   
-  filterAmount *= filterMultiplier;
-  
   float dampenedStrain = currentStrain * strainDampingMultiplier;
-  riderEffort = smooth(dampenedStrain, riderEffort, filterAmount);
+  riderEffort = smooth(dampenedStrain, riderEffort, filterAmount * filterMultiplier);
   
   float secondaryFilterAmount = (float)properties[PROPERTY_RIDER_EFFORT_FILTER_STRENGTH].value / (float)UINT16_MAX;
-  filteredRiderEffort = smooth(riderEffort, filteredRiderEffort, secondaryFilterAmount);
+  filteredRiderEffort = smooth(riderEffort, filteredRiderEffort, secondaryFilterAmount * filterMultiplier);
   
   float multiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
   //float multipliedEffort = multiplier * riderEffort;

@@ -595,7 +595,7 @@ void handleStrainMessage(byte newStrain) {
   //float multipliedEffort = multiplier * riderEffort;
   //multipliedEffort = round(constrain(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value));
   
-  short powerOutput = calculatePowerOutput(riderEffort);
+  short powerOutput = calculatePowerOutput(filteredRiderEffort);
   powerOutput = map(powerOutput, -127, 128, -63, 64);
   short powerOutputSensorValue = powerOutput;
   powerOutput *= multiplier;

@@ -32,6 +32,7 @@ void storeCalibrations() {
       int msb = i * 2;
       EEPROM.write(msb, properties[i].value >> 8);
       EEPROM.write(lsb, properties[i].value);
+    
       propertyCount++;
     }
   }

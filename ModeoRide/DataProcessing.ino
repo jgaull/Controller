@@ -475,6 +475,9 @@ void handleStrainMessage(byte newStrain) {
       completedStroke.data[i] = currentPedalStroke[(i + startIndex) % MAX_STROKE_LENGTH];
     }
     
+    sensors[SENSOR_STROKE_LENGTH].value = map(currentPedalStrokeLength, 0, MAX_STROKE_LENGTH, 0, UINT16_MAX);
+    sensors[SENSOR_STROKE_LENGTH].isFresh = true;
+    
     completedStroke.length = min(currentPedalStrokeLength, MAX_STROKE_LENGTH);
     completedStroke.index = 0;
     completedStroke.runs = 0;
@@ -585,6 +588,9 @@ void handleStrainMessage(byte newStrain) {
   float dampenedStrain = currentStrain * strainDampingMultiplier;
   riderEffort = smooth(dampenedStrain, riderEffort, filterAmount);
   
+  float secondaryFilterAmount = (float)properties[PROPERTY_RIDER_EFFORT_FILTER_STRENGTH].value / (float)UINT16_MAX;
+  filteredRiderEffort = smooth(riderEffort, filteredRiderEffort, secondaryFilterAmount);
+  
   float multiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
   //float multipliedEffort = multiplier * riderEffort;
   //multipliedEffort = round(constrain(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value));
@@ -600,20 +606,25 @@ void handleStrainMessage(byte newStrain) {
   sensors[SENSOR_POWER_OUTPUT].isFresh = true;
   
   float riderEffortSensorValue = constrain(riderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
-  uint16_t riderEffortValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
-  sensors[SENSOR_RIDER_EFFORT].value = riderEffortValue;
+  riderEffortSensorValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
+  sensors[SENSOR_RIDER_EFFORT].value = riderEffortSensorValue;
   sensors[SENSOR_RIDER_EFFORT].isFresh = true;
+  
+  float filteredRiderEffortSensorValue = constrain(filteredRiderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
+  filteredRiderEffortSensorValue = map(filteredRiderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
+  sensors[SENSOR_FILTERED_RIDER_EFFORT].value = filteredRiderEffortSensorValue;
+  sensors[SENSOR_FILTERED_RIDER_EFFORT].isFresh = true;
   
   float currentStrainSensorValue = constrain(currentStrain, 0, properties[PROPERTY_MAX_OUTPUT].value);
   currentStrainSensorValue = map(currentStrainSensorValue, 0, properties[PROPERTY_MAX_OUTPUT].value, 0, UINT16_MAX);
   sensors[SENSOR_CURRENT_STRAIN].value = currentStrainSensorValue;
   sensors[SENSOR_CURRENT_STRAIN].isFresh = true;
   
-  byte rawStrainSensorValue = map(strainDelta, 0, 64, 0, UINT16_MAX);
+  unsigned short rawStrainSensorValue = map(strainDelta, 0, 64, 0, UINT16_MAX);
   sensors[SENSOR_RAW_STRAIN].value = rawStrainSensorValue;
   sensors[SENSOR_RAW_STRAIN].isFresh = true;
   
-  byte torqueAppliedSensorValue = map(torque, 0, 64, 0, UINT16_MAX);
+  unsigned short torqueAppliedSensorValue = map(torque, 0, 64, 0, UINT16_MAX);
   sensors[SENSOR_TORQUE_APPLIED].value = torqueAppliedSensorValue;
   sensors[SENSOR_TORQUE_APPLIED].isFresh = true;
   //end a bunch of shit for sensor managers
@@ -623,61 +634,16 @@ void handleStrainMessage(byte newStrain) {
  // hasTorqueMessage = true;  //  NOW ALTERNATELY HANDLED BY MEDIUM MESSAGE RX TIMER 
   //for debug.
   /*
-  Serial.print(dampenedStrain);
-  Serial.print(",");
-  Serial.print(currentStrain);
-  Serial.print(",");
-  Serial.print(strainDamping);
-  Serial.print(",");
   Serial.print(riderEffort);
   Serial.print(",");
-  Serial.print(filterAmount);
-  Serial.print(",");
-  Serial.print(torque);
-  Serial.print(",");
-  Serial.print(rxData[DAT_MTR_TRQ]);
-  Serial.print(",");
-  Serial.print(rxData[DAT_RID_TRQ]);
-  Serial.print(",");
-  Serial.print(rxData[DAT_MTR_SPD]);
+  Serial.print(filteredRiderEffort);
   Serial.print(",");
   Serial.print(micros());
   Serial.println("");
   //*/
 }
 
-/*byte calculateTorque()
-{
-  if(trqAssistState == TRQ_ASSIST_OFF && realSpeed > REAL_SPEED_THRESH && vBatt > VBATT_THRESH) {
-      trqAssistState = TRQ_ASSIST_ON;
-  }
-  
-  if(trqAssistState == TRQ_ASSIST_ON && (realSpeed < REAL_SPEED_THRESH || vBatt < VBATT_THRESH)) {
-      trqAssistState = TRQ_ASSIST_OFF;
-  }
-  
-  if (trqAssistState == TRQ_ASSIST_ON){
-   
-  // return 60;
-    
-    return min((int)(40.0 *((27.0-(float)realSpeed)/(27.0)) * ((float)filteredPedalTorque/15.0)),60);
-  }
-  else {
-    return 0;
-  }
-
-}
-
-byte filter(byte newVal, byte oldVal, byte number){
-  if(newVal>1) {
-    return (int)(((float)newVal*75 + (float)(number-75)*((float)oldVal))/(float)number);
-  }
-  else {
-    return (int)(((float)newVal + (float)(number-1)*(float)oldVal)/(float)number);
-  }
-}*/
-
-float smooth(byte newVal, float oldVal, float filterStrength) {
+float smooth(float newVal, float oldVal, float filterStrength) {
   
   filterStrength = constrain(filterStrength, 0, 1);
   

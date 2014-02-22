@@ -5,6 +5,11 @@ void performBluetoothSend() {
   for (byte i = 0; i < NUM_SENSORS; i++) {
     
     uint16_t value = properties[sensors[i].propertyAddress].value;
+    if (i == SENSOR_FILTERED_RIDER_EFFORT + FIRST_SENSOR_IDENTIFIER) {
+      Serial.print("value = ");
+      Serial.println(value);
+    }
+    
     if ( value > 0 && sensors[i].isFresh ) {
       BLEMini.write(sensors[i].dataIdentifier);
       BLEMini.write(sensors[i].value);
@@ -95,9 +100,6 @@ void performPropertySync(byte identifier, uint16_t value) {
   BLEMini.write(identifier);
   BLEMini.write(value);
   BLEMini.write(value >> 8);
-  
-  Serial.print("   SYNCED: ");
-  Serial.println(identifier);
 }
 
 void performConnect() {
@@ -117,7 +119,7 @@ void performConnect() {
     BLEMini.write(properties[i].value >> 8);
     Serial.print("i: ");
     Serial.println(i);
-    delay(25);
+    delay(50);
   }
   
   /*
@@ -153,6 +155,8 @@ void constructBLESensors() {
   sensors[SENSOR_MOTOR_TEMP].propertyAddress = PROPERTY_SENSOR_MOTOR_TEMP_STATE;
   sensors[SENSOR_BATTERY_VOLTAGE].propertyAddress = PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE;
   sensors[SENSOR_POWER_OUTPUT].propertyAddress = PROPERTY_SENSOR_POWER_OUTPUT_STATE;
+  sensors[SENSOR_STROKE_LENGTH].propertyAddress = PROPERTY_SENSOR_STROKE_LENGTH_STATE;
+  sensors[SENSOR_FILTERED_RIDER_EFFORT].propertyAddress = PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE;
 }
 
 void constructBLEProperties() {
@@ -169,6 +173,9 @@ void constructBLEProperties() {
   properties[PROPERTY_SENSOR_MOTOR_TEMP_STATE].eepromSave = false;
   properties[PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE].eepromSave = false;
   properties[PROPERTY_SENSOR_POWER_OUTPUT_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_STROKE_LENGTH_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE].eepromSave = false;
+  properties[PROPERTY_SENSOR_CURRENT_STRAIN_STATE].eepromSave = false;
   properties[PROPERTY_TORQUE_MULTIPLIER].eepromSave = false;
 }
 

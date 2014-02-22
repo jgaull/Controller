@@ -113,6 +113,7 @@ void activateBionx(){
 void shutdownBionx() {
   
   storeCalibrations();
+  stopSensorUpdates();
   
   //JIC code:  SEND TWO zero-speed commands, SEND 0A command, SET DIRECTION FORWARD
   txBuf[0]= 0x00;

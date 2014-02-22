@@ -32,8 +32,6 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 #include "ModeoRide.h"                  //  Local headers, need to move constants here
 #include "CAN_Definitions.h"
 #include "BLE_Definitions.h"
-#include "DataProcessing_Definitions.h"
-
 
 //VARIABLE DECLARATIONS FOLLOW
 
@@ -87,6 +85,7 @@ byte strokeId = 0;
 byte cyclesSinceLastStroke = 0;
 
 float riderEffort = 0;
+float filteredRiderEffort = 0;
 
 float strainDampingMultiplier = 0.0f;
 point strainDampingCurve[RESOLUTION];
@@ -161,7 +160,6 @@ void loop()
   //performSerialDebugging();
   
   manageActionCounter();
-  
   /*
   Serial.print("freeMemory() = ");
   Serial.println(freeMemory());

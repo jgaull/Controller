@@ -4,7 +4,7 @@ unsigned long mediumTxStamp = 0;
 unsigned long slowTxStamp = 0;
 unsigned long torqueTxStamp = 0;
 
-#define CANMSG_TX_DELTA   3000
+#define CANMSG_TX_DELTA   5000
 #define FAST_TX_DELTA     10000
 #define MEDIUM_TX_DELTA   50000
 #define SLOW_TX_DELTA     1000000

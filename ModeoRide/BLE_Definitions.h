@@ -48,8 +48,9 @@
 #define PROPERTY_SENSOR_STROKE_LENGTH_STATE 32
 #define PROPERTY_RIDER_EFFORT_FILTER_STRENGTH 33
 #define PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE 34
+#define PROPERTY_FANCY_ASSIST_STATE 35
 
-#define NUM_PROPERTIES 35 //Is there a better way to do this?
+#define NUM_PROPERTIES 36 //Is there a better way to do this?
 
 //Used to sync iOS to Arduino
 #define REQUEST_CONNECT 0

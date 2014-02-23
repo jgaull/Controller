@@ -119,7 +119,7 @@ void performConnect() {
     BLEMini.write(properties[i].value >> 8);
     Serial.print("i: ");
     Serial.println(i);
-    delay(50);
+    delay(25);
   }
   
   /*

@@ -421,8 +421,10 @@ void handleStrainMessageLight(byte newStrain) {
   
   float filterAmount = map(64 - strainDelta, 0, 64, properties[PROPERTY_SMOOTHING_MIN].value, properties[PROPERTY_SMOOTHING_MAX].value);
   filterAmount /= (float)UINT16_MAX; //because map only works with whole numbers.
+  float secondaryFilterAmount = (float)properties[PROPERTY_RIDER_EFFORT_FILTER_STRENGTH].value / (float)UINT16_MAX;
   
   riderEffort = smooth(strainDelta, riderEffort, filterAmount);
+  filteredRiderEffort = smooth(riderEffort, filteredRiderEffort, secondaryFilterAmount);
   
   if (newStrain > 0) {
     cyclesSinceLastStroke = 0;
@@ -433,11 +435,27 @@ void handleStrainMessageLight(byte newStrain) {
   
   if (cyclesSinceLastStroke > properties[PROPERTY_STROKE_TIMEOUT_CYCLES].value) {
     riderEffort = 0;
+    filteredRiderEffort = 0;
+  }
+  
+  byte torque;
+  short powerOutputSensorValue;
+  if (!properties[PROPERTY_FANCY_ASSIST_STATE].value) {
+    byte torque = map(filteredRiderEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
+  }
+  else {
+    short powerOutput = calculatePowerOutput(filteredRiderEffort);
+    powerOutput = map(powerOutput, -127, 128, -63, 64);
+    powerOutputSensorValue = powerOutput;
+    torque = constrain(powerOutput, 0, 64); //this will have to change when regen is implemented.
   }
   
   float torqueMultiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
-  byte torque = map(riderEffort * torqueMultiplier, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
+  torque = constrain(round(torque * torqueMultiplier), 0, 64);
   Temp_Var_For_Fwd_Twrk_Msg = torque;
+  
+  sensors[SENSOR_POWER_OUTPUT].value = map(powerOutputSensorValue, -127, 128, 0, UINT16_MAX);
+  sensors[SENSOR_POWER_OUTPUT].isFresh = true;
   
   float riderEffortSensorValue = constrain(riderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
   riderEffortSensorValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
@@ -445,8 +463,23 @@ void handleStrainMessageLight(byte newStrain) {
   sensors[SENSOR_RIDER_EFFORT].value = riderEffortSensorValue;
   sensors[SENSOR_RIDER_EFFORT].isFresh = true;
   
-  ///*
+  float filteredRiderEffortSensorValue = constrain(filteredRiderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
+  filteredRiderEffortSensorValue = map(filteredRiderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
+  sensors[SENSOR_FILTERED_RIDER_EFFORT].value = filteredRiderEffortSensorValue;
+  sensors[SENSOR_FILTERED_RIDER_EFFORT].isFresh = true;
+  
+  unsigned short rawStrainSensorValue = map(newStrain, 0, 64, 0, UINT16_MAX);
+  sensors[SENSOR_RAW_STRAIN].value = rawStrainSensorValue;
+  sensors[SENSOR_RAW_STRAIN].isFresh = true;
+  
+  unsigned short torqueAppliedSensorValue = map(torque, 0, 64, 0, UINT16_MAX);
+  sensors[SENSOR_TORQUE_APPLIED].value = torqueAppliedSensorValue;
+  sensors[SENSOR_TORQUE_APPLIED].isFresh = true;
+  
+  /*
   Serial.print(riderEffort);
+  Serial.print(",");
+  Serial.print(filteredRiderEffort);
   Serial.print(",");
   Serial.print(newStrain);
   Serial.print(",");

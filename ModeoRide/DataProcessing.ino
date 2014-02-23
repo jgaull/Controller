@@ -1,7 +1,8 @@
 void manageDataProcessing() {
   
   if (rxDataIsFresh[DAT_RID_TRQ]) {
-    handleStrainMessage(rxData[DAT_RID_TRQ]);
+    //handleStrainMessage(rxData[DAT_RID_TRQ]);
+    handleStrainMessageLight(rxData[DAT_RID_TRQ]);
     rxDataIsFresh[DAT_RID_TRQ] = false;
   }
   
@@ -414,6 +415,45 @@ boolean intersectionOfLineFrom(point &p1, point &p2, point &p3, point &p4, point
   return true;
 }
 
+void handleStrainMessageLight(byte newStrain) {
+  
+  byte strainDelta = round(newStrain * strainDampingMultiplier);
+  
+  float filterAmount = map(64 - strainDelta, 0, 64, properties[PROPERTY_SMOOTHING_MIN].value, properties[PROPERTY_SMOOTHING_MAX].value);
+  filterAmount /= (float)UINT16_MAX; //because map only works with whole numbers.
+  
+  riderEffort = smooth(strainDelta, riderEffort, filterAmount);
+  
+  if (newStrain > 0) {
+    cyclesSinceLastStroke = 0;
+  }
+  else {
+    cyclesSinceLastStroke = min(cyclesSinceLastStroke + 1, 255);
+  }
+  
+  if (cyclesSinceLastStroke > properties[PROPERTY_STROKE_TIMEOUT_CYCLES].value) {
+    riderEffort = 0;
+  }
+  
+  float torqueMultiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
+  byte torque = map(riderEffort * torqueMultiplier, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
+  Temp_Var_For_Fwd_Twrk_Msg = torque;
+  
+  float riderEffortSensorValue = constrain(riderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
+  riderEffortSensorValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
+  riderEffortSensorValue = round(riderEffortSensorValue);
+  sensors[SENSOR_RIDER_EFFORT].value = riderEffortSensorValue;
+  sensors[SENSOR_RIDER_EFFORT].isFresh = true;
+  
+  ///*
+  Serial.print(riderEffort);
+  Serial.print(",");
+  Serial.print(newStrain);
+  Serial.print(",");
+  Serial.print(strainDelta);
+  Serial.println("");
+  //*/
+}
 
 void addNewStroke(PedalStroke stroke) {
   byte newLength = min(strokesLength + 1, MAX_STORED_STROKES);
@@ -525,10 +565,12 @@ void handleStrainMessage(byte newStrain) {
     
     if (index < strokes[i].length) {
       
+      /*
       for (byte j = 0; j <= index; j++) {
         expectedStrain += strokes[i].data[j];
       }
-      
+      */
+      expectedStrain += strokes[i].data[index];
       strokes[i].index++;
     }
     else if (index > currentPedalStrokeLength) {
@@ -571,11 +613,11 @@ void handleStrainMessage(byte newStrain) {
   currentPedalStroke[currentPedalStrokeLength % MAX_STROKE_LENGTH] = strainDelta;
   currentPedalStrokeLength++;
   
-  float strainDiff = currentStrain - expectedStrain;
+  float strainDiff = strainDelta - expectedStrain;
   strainDiff = abs(strainDiff);
   
-  //Map will allow values above and below the max. I'm currently leaving them unconstrained.
-  float filterAmount = map(properties[PROPERTY_MAX_OUTPUT].value - strainDiff, 0, properties[PROPERTY_MAX_OUTPUT].value, properties[PROPERTY_SMOOTHING_MIN].value, properties[PROPERTY_SMOOTHING_MAX].value);
+  float filterAmount = constrain(strainDiff, 0, properties[PROPERTY_MAX_OUTPUT].value);
+  filterAmount = map(properties[PROPERTY_MAX_OUTPUT].value - strainDiff, 0, properties[PROPERTY_MAX_OUTPUT].value, properties[PROPERTY_SMOOTHING_MIN].value, properties[PROPERTY_SMOOTHING_MAX].value);
   filterAmount /= (float)UINT16_MAX; //because map only works with round numbers.
   
   byte filterMultiplier = 1;
@@ -635,6 +677,14 @@ void handleStrainMessage(byte newStrain) {
   Serial.print(riderEffort);
   Serial.print(",");
   Serial.print(filteredRiderEffort);
+  Serial.print(",");
+  Serial.print(currentStrain);
+  Serial.print(",");
+  Serial.print(strainDelta);
+  Serial.print(",");
+  Serial.print(expectedStrain);
+  Serial.print(",");
+  Serial.print(filterAmount);
   Serial.print(",");
   Serial.print(micros());
   Serial.println("");

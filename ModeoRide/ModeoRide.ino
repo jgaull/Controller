@@ -147,7 +147,7 @@ void loop()
   
   performCANRX();
   
-  performBluetoothSend();
+  performBluetoothSend(now);
   
   performBluetoothReceive();
   

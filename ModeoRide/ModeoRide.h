@@ -52,6 +52,7 @@ struct PedalStroke {
 
 struct Property {
   uint16_t value;
+  unsigned long nextSendTime;
   boolean eepromSave;
   boolean pendingSave;
 };

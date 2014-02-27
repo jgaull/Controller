@@ -13,11 +13,11 @@
 #define VEHICLE_ON 1
 
 //  Constants for configuration of the strain characterization algorithm
-#define NUM_AVERAGED_STROKES 3
-#define MAX_STORED_STROKES 3
 #define MAX_DAMPING_MULTIPLIER 1
-#define MAX_STROKE_LENGTH 30
 #define RESOLUTION 10
+#define STANDARD_ASSIST 0
+#define THREE_DIMENSIONAL_MAPPING 1
+#define EFFORT_MAPPING 2
 
 //***Time Management Variables - ALL VALUES IN MICROSECONDS
 #define BLE_TX_DELTA 10000
@@ -28,27 +28,6 @@
 
 #define MEDIUM_TX_LISTLEN 10
 #define SLOW_TX_LISTLEN  10
-//
-
-
-
-
-struct canMsg {
-  byte ID;
-  byte DLC;
-  byte data[4];
-  byte freq;
-  bool isPeriodic;
-  bool dataReady;
-};
-
-struct PedalStroke {
-  byte length;
-  byte index;
-  byte runs;
-  byte strokeId;
-  byte data[MAX_STROKE_LENGTH];
-};
 
 struct Property {
   uint16_t value;

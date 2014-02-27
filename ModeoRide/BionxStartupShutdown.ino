@@ -10,7 +10,6 @@ void activateBionx(){
   buildAssistCurve();
   buildRegenCurve();
   buildSensitivityCurve();
-  buildPowerOutputCurve();
   
   //delay(500);
   

@@ -10,8 +10,6 @@ unsigned long torqueTxStamp = 0;
 #define SLOW_TX_DELTA     1000000
 #define TORQUE_TX_DELTA   10000
 
-unsigned long canMsgTxStamp = 0;
-
 bool fastTxFlag = 0;
 bool mediumTxFlag = 0;
 bool slowTxFlag = 0;
@@ -72,8 +70,6 @@ PROGMEM prog_uchar fastTxMsgs[][3] = {  // ID, DLC, sigID
   {0x20, 0x02, 0x0A},
 //  {0x20, 0x02, 0x21},
 };
-
-byte fastTxData [(sizeof(fastTxMsgs) / sizeof(fastTxMsgs[0]))] = {0};
 
 PROGMEM prog_uchar mediumTxMsgs[][3] = {  // ID, DLC, sigID
   {0x20, 0x02, 0x21},

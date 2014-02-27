@@ -14,6 +14,8 @@ void manageDataProcessing() {
   }
   
   if (rxDataIsFresh[DAT_BAT_VBAT]) {
+    //Serial.print("batteryVoltage: ");
+    //Serial.println(rxData[DAT_BAT_VBAT]);
     sensors[SENSOR_BATTERY_VOLTAGE].value = map(rxData[DAT_BAT_VBAT], 0, 64, 0, UINT16_MAX);
     sensors[SENSOR_BATTERY_VOLTAGE].isFresh = true;
     
@@ -35,70 +37,6 @@ void manageDataProcessing() {
   }
  
 }
-
-/*void meadowsFilterAndTorque(byte newRiderTrq) {
-  if (meadowsStrainBuffer < 10) {
-    meadowsStrainBuffer = (meadowsStrainBuffer+ newRiderTrq) / 2;
-  }
-  else {
-    meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
-    meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
-  }
-  
-  byte torque = map(meadowsStrainBuffer, 0, 40, 0, 64 );
-  torque = constrain(torque, 0,64);
-
-  Temp_Var_For_Fwd_Twrk_Msg = torque;
-  
-  Serial.print(meadowsStrainBuffer);
-  Serial.print(",");
-  Serial.print(torque);
-  Serial.print(",");
-  Serial.print(rxData[DAT_MTR_TRQ]);
-  Serial.print(",");
-  Serial.print(rxData[DAT_RID_TRQ]);
-  Serial.print(",");
-  Serial.print(rxData[DAT_MTR_SPD]);
-  Serial.print(",");
-  Serial.print(micros());
-  Serial.println("");
-}
-
-
-
-
-void meadowsFilterAndTorqueAdvanced(byte newRiderTrq) {
-  if (meadowsStrainBuffer < 10) {
-    meadowsStrainBuffer = (meadowsStrainBuffer+ newRiderTrq) / 2;
-  }
-  else {
-    meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
-  }
-  
-  unsigned long now = micros();
- 
-  byte torque = map(meadowsStrainBuffer, 0, 40, 0, 64 );
-  
-  torque = constrain(torque, 0,64);
-  Temp_Var_For_Fwd_Twrk_Msg = torque;
-  
-  if ((now >= TrqTimestamp + TRQ_UPDATE_DELTA) || ((now < TrqTimestamp) && ((4294967295 - (TrqTimestamp + now)) >= TRQ_UPDATE_DELTA))) {
-    TrqTimestamp = now;
-  }
-  
-  Serial.print(meadowsStrainBuffer);
-  Serial.print(",");
-  Serial.print(torque);
-  Serial.print(",");
-  Serial.print(rxData[DAT_MTR_TRQ]);
-  Serial.print(",");
-  Serial.print(rxData[DAT_RID_TRQ]);
-  Serial.print(",");
-  Serial.print(rxData[DAT_MTR_SPD]);
-  Serial.print(",");
-  Serial.print(micros());
-  Serial.println("");
-}*/
 
 short calculatePowerOutput(float effort) {
   
@@ -131,9 +69,38 @@ short calculatePowerOutput(float effort) {
   return 0;
 }
 
-void recalculateBezierStrainDampingMultiplier() {
+byte mapEffortToPower(float effort) {
   
-  unsigned long timestamp = micros();
+  byte mappedEffort = constrain(effort, 0, properties[PROPERTY_MAX_EFFORT].value);
+  mappedEffort = map(mappedEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 255);
+  
+  point effort1 = { mappedEffort, 0 };
+  point effort2 = { mappedEffort, 255 };
+  
+  short powerOutput = 0;
+  
+  for (int i = 0; i < RESOLUTION - 1; i++)
+  {
+    point curveSegment1 = assistCurve[i];
+    point curveSegment2 = assistCurve[i + 1];
+    
+    point result;
+    
+    if (i == 0 && curveSegment1.x == effort1.x) {
+      powerOutput = curveSegment1.y;
+      return powerOutput;
+    }
+    
+    if (intersectionOfLineFrom(curveSegment1, curveSegment2, effort1, effort2, result)) {
+      powerOutput = result.y;
+      return powerOutput;
+    }
+  }
+  
+  return 0;
+}
+
+void recalculateBezierStrainDampingMultiplier() {
   
   float maxMultiplier = 1;
   byte motorSpeed = constrain(rxData[DAT_MTR_SPD], 0, properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value);
@@ -259,13 +226,19 @@ void buildDampingCurve() {
     bezier(p, startPoint, control1, control2, endPoint, t);
     strainDampingCurve[i].x = p.x;
     strainDampingCurve[i].y = p.y;
+    /*
+    Serial.print(p.x);
+    Serial.print(",");
+    Serial.println(p.y);
+    */
   }
 }
 
+
 void buildAssistCurve() {
   //Serial.println("Assist");
-  point startPoint = { 0, 255 };
-  point endPoint = { 255, 0 };
+  point startPoint = { 0, 0 };
+  point endPoint = { 255, 255 };
   
   byte firstPropertyIdentifier = PROPERTY_ASSIST_1_X;
   
@@ -287,7 +260,7 @@ void buildAssistCurve() {
     Serial.print(p.x);
     Serial.print(",");
     Serial.println(p.y);
-    */
+    //*/
   }
 }
 
@@ -430,7 +403,7 @@ void handleStrainMessageLight(byte newStrain) {
     cyclesSinceLastStroke = 0;
   }
   else {
-    cyclesSinceLastStroke = min(cyclesSinceLastStroke + 1, 255);
+    cyclesSinceLastStroke = min(cyclesSinceLastStroke + 1, 254);
   }
   
   if (cyclesSinceLastStroke > properties[PROPERTY_STROKE_TIMEOUT_CYCLES].value) {
@@ -440,14 +413,28 @@ void handleStrainMessageLight(byte newStrain) {
   
   byte torque;
   short powerOutputSensorValue;
-  if (!properties[PROPERTY_FANCY_ASSIST_STATE].value) {
-    byte torque = map(filteredRiderEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
+  if (properties[PROPERTY_FANCY_ASSIST_STATE].value == STANDARD_ASSIST) {
+    torque = map(filteredRiderEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
   }
-  else {
+  else if (properties[PROPERTY_FANCY_ASSIST_STATE].value == THREE_DIMENSIONAL_MAPPING)  {
     short powerOutput = calculatePowerOutput(filteredRiderEffort);
     powerOutput = map(powerOutput, -127, 128, -63, 64);
     powerOutputSensorValue = powerOutput;
     torque = constrain(powerOutput, 0, 64); //this will have to change when regen is implemented.
+  }
+  else if (properties[PROPERTY_FANCY_ASSIST_STATE].value == EFFORT_MAPPING) {
+    byte effortMappedToPower = mapEffortToPower(filteredRiderEffort);
+    
+    byte mappedEffort = constrain(filteredRiderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
+    mappedEffort = map(mappedEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 255);
+    
+    torque = map(effortMappedToPower, 0, 255, 0, 64);
+    /*
+    Serial.print(mappedEffort);
+    Serial.print(",");
+    Serial.print(effortMappedToPower);
+    Serial.print(",");
+    */
   }
   
   float torqueMultiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
@@ -481,245 +468,7 @@ void handleStrainMessageLight(byte newStrain) {
   Serial.print(",");
   Serial.print(filteredRiderEffort);
   Serial.print(",");
-  Serial.print(newStrain);
-  Serial.print(",");
-  Serial.print(strainDelta);
-  Serial.println("");
-  //*/
-}
-
-void addNewStroke(PedalStroke stroke) {
-  byte newLength = min(strokesLength + 1, MAX_STORED_STROKES);
-  
-  for (int i = strokesLength - 1; i >= 0; i--) {
-    if (i + 1 < newLength) {
-      strokes[i + 1] = strokes[i];
-    }
-  }
-  
-  strokes[0] = stroke;
-  strokesLength = newLength;
-}
-
-/*PedalStroke copyStroke(PedalStroke stroke) {
-  PedalStroke copy;
-  copy.length = stroke.length;
-  copy.index = stroke.index;
-  copy.runs = stroke.runs;
-  
-  for (byte i = 0; i < stroke.length; i++) {
-    copy.data[i] = stroke.data[i];
-  }
-  
-  return copy;
-}*/
-
-void handleStrainMessage(byte newStrain) {
-  //strain values come in as positive deltas
-  byte strainDelta = newStrain;
-  
-  //If there was no change in strain
-  if ((strainDelta == 0 && currentStrain > 0) || (currentPedalStrokeLength >= MAX_STROKE_LENGTH && strainDelta == 0)) {
-    
-    //Reset any strokes that have finished playing back. It's time for a new stroke.
-    for (byte i = 0; i < strokesLength; i++) {
-      if (strokes[i].index == strokes[i].length) {
-        strokes[i].index = 0;
-        strokes[i].runs++;
-        
-        if (strokes[i].runs >= NUM_AVERAGED_STROKES) {
-          removeStrokeAtIndex(i);
-          i--;
-        }
-      }
-    }
-    
-    //Create a new stroke
-    PedalStroke completedStroke;
-    
-    byte startIndex = 0;
-    if (currentPedalStrokeLength >= MAX_STROKE_LENGTH) {
-      startIndex = (currentPedalStrokeLength - MAX_STROKE_LENGTH) % MAX_STROKE_LENGTH;
-    }
-    
-    byte length = min(currentPedalStrokeLength, MAX_STROKE_LENGTH);
-    
-    for (byte i = 0; i < length; i++) {
-      completedStroke.data[i] = currentPedalStroke[(i + startIndex) % MAX_STROKE_LENGTH];
-    }
-    
-    sensors[SENSOR_STROKE_LENGTH].value = map(currentPedalStrokeLength, 0, MAX_STROKE_LENGTH, 0, UINT16_MAX);
-    sensors[SENSOR_STROKE_LENGTH].isFresh = true;
-    
-    completedStroke.length = min(currentPedalStrokeLength, MAX_STROKE_LENGTH);
-    completedStroke.index = 0;
-    completedStroke.runs = 0;
-    completedStroke.strokeId = strokeId;
-    addNewStroke(completedStroke);
-    
-    strokeId++;
-    
-    //Reset our stroke variables
-    currentStrain = 0;
-    currentPedalStrokeLength = 0;
-  }
-  
-  //We just got our first value of the new stroke
-  if (strainDelta > 0 && currentStrain == 0) {
-    for (byte i = 0; i < strokesLength; i++) {
-      //If there are any strokes still playing out from before, we reset them to the current index.
-      if (strokes[i].index > currentPedalStrokeLength && strokes[i].index != strokes[i].length) {
-        strokes[i].index = currentPedalStrokeLength;
-        strokes[i].runs++;
-        
-        //If the stroke is played out then remove it.
-        if (strokes[i].runs >= NUM_AVERAGED_STROKES) {
-          removeStrokeAtIndex(i);
-          i--;
-        }
-      }
-    }
-  }
-  
-  //since they are deltas we add them all together.
-  currentStrain += strainDelta;
-  
-  if (currentStrain > 0) {
-    cyclesSinceLastStroke = 0;
-  }
-  else {
-    cyclesSinceLastStroke = min(cyclesSinceLastStroke + 1, 255);
-  }
-  
-  int expectedStrain = 0;
-  for (byte i = 0; i < strokesLength; i++) {
-    
-    byte index = strokes[i].index;
-    
-    if (index < strokes[i].length) {
-      
-      /*
-      for (byte j = 0; j <= index; j++) {
-        expectedStrain += strokes[i].data[j];
-      }
-      */
-      expectedStrain += strokes[i].data[index];
-      strokes[i].index++;
-    }
-    else if (index > currentPedalStrokeLength) {
-      strokes[i].index = currentPedalStrokeLength;
-      strokes[i].runs++;
-      
-      if (strokes[i].runs >= NUM_AVERAGED_STROKES) {
-        removeStrokeAtIndex(i);
-        i--;
-      }
-    }
-    
-    /*
-    Serial.print(strokes[i].strokeId);
-    Serial.print(",");
-    
-    if (index < strokes[i].length) {
-      Serial.print(strokes[i].data[index]);
-    }
-    else {
-      Serial.print(0);
-    }
-    
-    Serial.print(",");
-    Serial.print(strokes[i].length);
-    Serial.print(",");
-    Serial.print(index);
-    Serial.print(",");
-    Serial.print(strokes[i].runs);
-    Serial.print(",");
-    //*/
-  }
-  
-  //Serial.println();
-  
-  if (expectedStrain > 0) {
-    expectedStrain /= strokesLength;
-  }
-  
-  currentPedalStroke[currentPedalStrokeLength % MAX_STROKE_LENGTH] = strainDelta;
-  currentPedalStrokeLength++;
-  
-  float strainDiff = strainDelta - expectedStrain;
-  strainDiff = abs(strainDiff);
-  
-  float filterAmount = constrain(strainDiff, 0, properties[PROPERTY_MAX_OUTPUT].value);
-  filterAmount = map(properties[PROPERTY_MAX_OUTPUT].value - strainDiff, 0, properties[PROPERTY_MAX_OUTPUT].value, properties[PROPERTY_SMOOTHING_MIN].value, properties[PROPERTY_SMOOTHING_MAX].value);
-  filterAmount /= (float)UINT16_MAX; //because map only works with round numbers.
-  
-  byte filterMultiplier = 1;
-  if (cyclesSinceLastStroke > properties[PROPERTY_STROKE_TIMEOUT_CYCLES].value) {
-    filterMultiplier = 0;
-  }
-  
-  float dampenedStrain = currentStrain * strainDampingMultiplier;
-  riderEffort = smooth(dampenedStrain, riderEffort, filterAmount * filterMultiplier);
-  
-  float secondaryFilterAmount = (float)properties[PROPERTY_RIDER_EFFORT_FILTER_STRENGTH].value / (float)UINT16_MAX;
-  filteredRiderEffort = smooth(riderEffort, filteredRiderEffort, secondaryFilterAmount * filterMultiplier);
-  
-  float multiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
-  //float multipliedEffort = multiplier * riderEffort;
-  //multipliedEffort = round(constrain(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value));
-  
-  short powerOutput = calculatePowerOutput(filteredRiderEffort);
-  powerOutput = map(powerOutput, -127, 128, -63, 64);
-  short powerOutputSensorValue = powerOutput;
-  powerOutput *= multiplier;
-  byte torque = constrain(powerOutput, 0, 64);
-  
-  //A bunch of shit for sensor managers.
-  sensors[SENSOR_POWER_OUTPUT].value = map(powerOutputSensorValue, -127, 128, 0, UINT16_MAX);
-  sensors[SENSOR_POWER_OUTPUT].isFresh = true;
-  
-  float riderEffortSensorValue = constrain(riderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
-  riderEffortSensorValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
-  sensors[SENSOR_RIDER_EFFORT].value = riderEffortSensorValue;
-  sensors[SENSOR_RIDER_EFFORT].isFresh = true;
-  
-  float filteredRiderEffortSensorValue = constrain(filteredRiderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
-  filteredRiderEffortSensorValue = map(filteredRiderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
-  sensors[SENSOR_FILTERED_RIDER_EFFORT].value = filteredRiderEffortSensorValue;
-  sensors[SENSOR_FILTERED_RIDER_EFFORT].isFresh = true;
-  
-  float currentStrainSensorValue = constrain(currentStrain, 0, properties[PROPERTY_MAX_OUTPUT].value);
-  currentStrainSensorValue = map(currentStrainSensorValue, 0, properties[PROPERTY_MAX_OUTPUT].value, 0, UINT16_MAX);
-  sensors[SENSOR_CURRENT_STRAIN].value = currentStrainSensorValue;
-  sensors[SENSOR_CURRENT_STRAIN].isFresh = true;
-  
-  unsigned short rawStrainSensorValue = map(strainDelta, 0, 64, 0, UINT16_MAX);
-  sensors[SENSOR_RAW_STRAIN].value = rawStrainSensorValue;
-  sensors[SENSOR_RAW_STRAIN].isFresh = true;
-  
-  unsigned short torqueAppliedSensorValue = map(torque, 0, 64, 0, UINT16_MAX);
-  sensors[SENSOR_TORQUE_APPLIED].value = torqueAppliedSensorValue;
-  sensors[SENSOR_TORQUE_APPLIED].isFresh = true;
-  //end a bunch of shit for sensor managers
-  
-  Temp_Var_For_Fwd_Twrk_Msg = torque;
-  
- // hasTorqueMessage = true;  //  NOW ALTERNATELY HANDLED BY MEDIUM MESSAGE RX TIMER 
-  //for debug.
-  /*
-  Serial.print(riderEffort);
-  Serial.print(",");
-  Serial.print(filteredRiderEffort);
-  Serial.print(",");
-  Serial.print(currentStrain);
-  Serial.print(",");
-  Serial.print(strainDelta);
-  Serial.print(",");
-  Serial.print(expectedStrain);
-  Serial.print(",");
-  Serial.print(filterAmount);
-  Serial.print(",");
-  Serial.print(micros());
+  Serial.print(strainDampingMultiplier);
   Serial.println("");
   //*/
 }
@@ -731,16 +480,4 @@ float smooth(float newVal, float oldVal, float filterStrength) {
   oldVal = (newVal * (1 - filterStrength)) + (oldVal  *  filterStrength);
 
   return oldVal;
-}
-
-void removeStrokeAtIndex(byte index) {
-  if (strokesLength > 0 && index < strokesLength && index >= 0) {
-    for (int i = index; i < strokesLength - 1; i++) {
-      if (i + 1 < strokesLength) {
-        strokes[i] = strokes[i + 1];
-      }
-    }
-    
-    strokesLength--;
-  }
 }

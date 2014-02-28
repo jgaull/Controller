@@ -90,6 +90,12 @@ void performBluetoothReceive() {
         break;
     }
     
+    for (byte i = 0; i < NUM_SENSORS; i++) {
+      if (identifier == sensors[i].propertyAddress) {
+        sensors[i].isFresh = true;
+      }
+    }
+    
     performPropertySync(identifier, value);
   }
 }

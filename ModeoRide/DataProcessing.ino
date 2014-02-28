@@ -14,8 +14,13 @@ void manageDataProcessing() {
   }
   
   if (rxDataIsFresh[DAT_BAT_VBAT]) {
-    sensors[SENSOR_BATTERY_VOLTAGE].value = map(rxData[DAT_BAT_VBAT], 0, 64, 0, UINT16_MAX);
-    sensors[SENSOR_BATTERY_VOLTAGE].isFresh = true;
+    unsigned short mappedBatteryVoltage = constrain(rxData[DAT_BAT_VBAT], 170, 217);
+    mappedBatteryVoltage = map(mappedBatteryVoltage, 170, 217, 0, UINT16_MAX);
+    
+    if (mappedBatteryVoltage != sensors[SENSOR_BATTERY_VOLTAGE].value) {
+      sensors[SENSOR_BATTERY_VOLTAGE].value = mappedBatteryVoltage;
+      sensors[SENSOR_BATTERY_VOLTAGE].isFresh = true;
+    }
     
     rxDataIsFresh[DAT_BAT_VBAT] = false;
   }

@@ -62,7 +62,6 @@
 #define FIRST_COMMAND_IDENTIFIER 200
 
 #define MIN_TIME_BETWEEN_BLUETOOTH_SEND 100000 // Microseconds
-unsigned long previousPerformSendTime = 0;     // For tracking wraparound
 
 #define DEBUG_OUTPUT 0
 

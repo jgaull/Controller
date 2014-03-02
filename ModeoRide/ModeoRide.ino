@@ -97,6 +97,9 @@ point powerOutputCurve[RESOLUTION];
 
 boolean trqCmdTxFlag = false;
 
+// For calculating delta timesteps between updates
+unsigned long previousUpdateTime = 0;
+
 //*****TrqMgmt Variables
 
 
@@ -143,15 +146,20 @@ void loop()
 {
   unsigned long now = micros();
   
+  // Get the delta since last update. Wraparound will be handled automatically
+  unsigned long delta = now - previousUpdateTime;
+      
+  previousUpdateTime = now;
+  
   manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
   
   performCANRX();
   
-  performBluetoothSend(now);
+  performBluetoothSend(delta);
   
   performBluetoothReceive();
   
-  performPeriodicMessageSend(now);
+  performPeriodicMessageSend(delta);
   
   manageTxTimers(now);
   

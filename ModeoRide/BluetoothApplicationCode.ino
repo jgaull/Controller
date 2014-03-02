@@ -1,4 +1,4 @@
-void performBluetoothSend(unsigned long now) {
+void performBluetoothSend(unsigned long delta) {
   
   boolean hasSentValue = false;
   
@@ -6,20 +6,24 @@ void performBluetoothSend(unsigned long now) {
     
     uint16_t value = properties[sensors[i].propertyAddress].value;
   
-    unsigned long & nextSendTime = properties[sensors[i].propertyAddress].nextSendTime;
+    unsigned long & timeUntilNextSend = properties[sensors[i].propertyAddress].timeUntilNextSend;
+    
+    if (timeUntilNextSend > delta) {
+      timeUntilNextSend -= delta;
+    }
 
   #if DEBUG_OUTPUT
-    if (now >= nextSendTime || (now < nextSendTime && (previousPerformSendTime > now))) {
-      nextSendTime = now + MIN_TIME_BETWEEN_BLUETOOTH_SEND;
+    if (timeUntilNextSend <= delta) {
+      timeUntilNextSend = MIN_TIME_BETWEEN_BLUETOOTH_SEND;
       Serial.print("nextSendTime = ");
-      Serial.println(nextSendTime);
+      Serial.println(timeUntilNextSend);
     }
   #endif
     
     if ((value > 0 && sensors[i].isFresh) &&
-        (now >= nextSendTime || (now < nextSendTime && (previousPerformSendTime > now)))) {
+       timeUntilNextSend <= delta) {
       
-      nextSendTime = now + MIN_TIME_BETWEEN_BLUETOOTH_SEND;
+      timeUntilNextSend = MIN_TIME_BETWEEN_BLUETOOTH_SEND;
       
       BLEMini.write(sensors[i].dataIdentifier);
       BLEMini.write(sensors[i].value);
@@ -32,7 +36,6 @@ void performBluetoothSend(unsigned long now) {
   }
   
   digitalWrite(INDICATOR_LED_PIN, hasSentValue);
-  previousPerformSendTime = now;
 }
 
 void performBluetoothReceive() {

@@ -119,7 +119,6 @@ void setup()
 
   pinMode(ON_OFF_SWITCH_PIN, INPUT_PULLUP);
   pinMode(INDICATOR_LED_PIN, OUTPUT);
-  pinMode(WAKE_RELAY_PIN, OUTPUT);
   pinMode(CAN_READY_PIN, INPUT);
   pinMode(SWITCH_LED_PIN, OUTPUT);
 

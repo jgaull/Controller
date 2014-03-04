@@ -1,9 +1,8 @@
 //   IO PIN DEFINITIONS
 #define CAN_READY_PIN 2
 #define ON_OFF_SWITCH_PIN 5
-#define INDICATOR_LED_PIN 6
-#define WAKE_RELAY_PIN 7
-#define SWITCH_LED_PIN 4
+#define INDICATOR_LED_PIN 4
+#define SWITCH_LED_PIN 6
 
 //	State definitions
 #define TRQ_ASSIST_OFF 0

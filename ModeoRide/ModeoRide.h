@@ -4,6 +4,7 @@
 #define INDICATOR_LED_PIN 6
 #define WAKE_RELAY_PIN 7
 #define SWITCH_LED_PIN 4
+#define BLE_POWER_PIN 7
 
 //	State definitions
 #define TRQ_ASSIST_OFF 0

@@ -26,12 +26,14 @@ void performBluetoothSend() {
 
 void performBluetoothReceive() {
   
-  /*if (BLEMini.available() > 0) {
+  /*
+  if (BLEMini.available() > 0) {
     Serial.print("Available: ");
     Serial.println(BLEMini.available());
-  }*/
+  }
+  */
   
-  if ( BLEMini.available() == 3 )
+  if ( BLEMini.available() % 3 == 0 && BLEMini.available() > 0)
   {
     byte identifier = BLEMini.read();
     byte data1 = BLEMini.read();

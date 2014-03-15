@@ -26,73 +26,78 @@ void performBluetoothSend() {
 
 void performBluetoothReceive() {
   
-  /*
   if (BLEMini.available() > 0) {
+    /*
     Serial.print("Available: ");
     Serial.println(BLEMini.available());
-  }
-  */
-  
-  if ( BLEMini.available() % 3 == 0 && BLEMini.available() > 0)
-  {
-    byte identifier = BLEMini.read();
-    byte data1 = BLEMini.read();
-    byte data2 = BLEMini.read();
+    */
     
-    uint16_t value = (data2 << 8) + data1;
-    
-    Serial.print("Identifier: ");
-    Serial.println(identifier);
-    Serial.print("Value: ");
-    Serial.println(value);
-    
-    if (identifier >= FIRST_COMMAND_IDENTIFIER) {
-      byte commandIdentifier = identifier - FIRST_COMMAND_IDENTIFIER;
+    if ( BLEMini.available() % 3 == 0)
+    {
+      byte identifier = BLEMini.read();
+      byte data1 = BLEMini.read();
+      byte data2 = BLEMini.read();
       
-      if (commandIdentifier == REQUEST_CONNECT) {
-        performConnect();
-      }
-      else if (commandIdentifier == REQUEST_DISCONNECT) {
-        performDisconnect();
+      uint16_t value = (data2 << 8) + data1;
+      
+      Serial.print("Identifier: ");
+      Serial.println(identifier);
+      Serial.print("Value: ");
+      Serial.println(value);
+      
+      if (identifier >= FIRST_COMMAND_IDENTIFIER) {
+        byte commandIdentifier = identifier - FIRST_COMMAND_IDENTIFIER;
+        
+        if (commandIdentifier == REQUEST_CONNECT) {
+          performConnect();
+        }
+        else if (commandIdentifier == REQUEST_DISCONNECT) {
+          performDisconnect();
+        }
+        
+        return;
       }
       
-      return;
+      byte propertyIdentifier = identifier - FIRST_PROPERTY_IDENTIFIER;
+      if (properties[propertyIdentifier].value != value) {
+        properties[propertyIdentifier].value = value;
+        properties[propertyIdentifier].pendingSave = true;
+      }
+      
+      switch(identifier) {
+        case PROPERTY_STRAIN_DAMPING_CONTROL1_X:
+        case PROPERTY_STRAIN_DAMPING_CONTROL1_Y:
+        case PROPERTY_STRAIN_DAMPING_CONTROL2_X:
+        case PROPERTY_STRAIN_DAMPING_CONTROL2_Y:
+          buildDampingCurve();
+          break;
+        case PROPERTY_ASSIST_1_X:
+        case PROPERTY_ASSIST_1_Y:
+        case PROPERTY_ASSIST_2_X:
+        case PROPERTY_ASSIST_2_Y:
+          buildAssistCurve();
+          break;
+        case PROPERTY_REGEN_1_X:
+        case PROPERTY_REGEN_1_Y:
+        case PROPERTY_REGEN_2_X:
+        case PROPERTY_REGEN_2_Y:
+          buildRegenCurve();
+          break;
+        case PROPERTY_SENSITIVITY_1_X:
+        case PROPERTY_SENSITIVITY_1_Y:
+        case PROPERTY_SENSITIVITY_2_X:
+        case PROPERTY_SENSITIVITY_2_Y:
+          buildSensitivityCurve();
+          break;
+      }
+      
+      performPropertySync(identifier, value);
     }
-    
-    byte propertyIdentifier = identifier - FIRST_PROPERTY_IDENTIFIER;
-    if (properties[propertyIdentifier].value != value) {
-      properties[propertyIdentifier].value = value;
-      properties[propertyIdentifier].pendingSave = true;
+    else {
+      while(BLEMini.available() > 0) {
+        BLEMini.read();
+      }
     }
-    
-    switch(identifier) {
-      case PROPERTY_STRAIN_DAMPING_CONTROL1_X:
-      case PROPERTY_STRAIN_DAMPING_CONTROL1_Y:
-      case PROPERTY_STRAIN_DAMPING_CONTROL2_X:
-      case PROPERTY_STRAIN_DAMPING_CONTROL2_Y:
-        buildDampingCurve();
-        break;
-      case PROPERTY_ASSIST_1_X:
-      case PROPERTY_ASSIST_1_Y:
-      case PROPERTY_ASSIST_2_X:
-      case PROPERTY_ASSIST_2_Y:
-        buildAssistCurve();
-        break;
-      case PROPERTY_REGEN_1_X:
-      case PROPERTY_REGEN_1_Y:
-      case PROPERTY_REGEN_2_X:
-      case PROPERTY_REGEN_2_Y:
-        buildRegenCurve();
-        break;
-      case PROPERTY_SENSITIVITY_1_X:
-      case PROPERTY_SENSITIVITY_1_Y:
-      case PROPERTY_SENSITIVITY_2_X:
-      case PROPERTY_SENSITIVITY_2_Y:
-        buildSensitivityCurve();
-        break;
-    }
-    
-    performPropertySync(identifier, value);
   }
 }
 

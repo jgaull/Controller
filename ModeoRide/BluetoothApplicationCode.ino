@@ -24,13 +24,13 @@ void performBluetoothSend() {
   digitalWrite(INDICATOR_LED_PIN, hasSentValue);
 }
 
+/*
 void performBluetoothReceive() {
   
   if (BLEMini.available() > 0) {
-    /*
+    
     Serial.print("Available: ");
     Serial.println(BLEMini.available());
-    */
     
     if ( BLEMini.available() % 3 == 0)
     {
@@ -94,19 +94,153 @@ void performBluetoothReceive() {
       performPropertySync(identifier, value);
     }
     else {
-      while(BLEMini.available() > 0) {
-        BLEMini.read();
-      }
+      clearBLEBuffer();
+    }
+  }
+}
+*/
+
+void performBluetoothReceive() {
+  if (BLEMini.available() > 0) {
+    Serial.print("available: ");
+    Serial.println(BLEMini.available());
+    
+    byte identifier = BLEMini.read();
+    byte messageIdentifier;
+    
+    Serial.print("identifier: ");
+    Serial.println(identifier);
+    
+    if (identifier >= FIRST_BEZIER_IDENTIFIER) {
+      messageIdentifier = identifier - FIRST_BEZIER_IDENTIFIER;
+      handleBezier(messageIdentifier);
+    }
+    else if (identifier >= FIRST_COMMAND_IDENTIFIER) {
+      messageIdentifier = identifier - FIRST_COMMAND_IDENTIFIER;
+      handleCommand(messageIdentifier);
+    }
+    else if (identifier >= FIRST_EVENT_IDENTIFIER) {
+      //This doesn't do anything yet. Maybe not ever.
+    }
+    else if (identifier >= FIRST_SENSOR_IDENTIFIER) {
+      //This doesn't do anything. Proably ever.
+    }
+    else if (identifier >= FIRST_PROPERTY_IDENTIFIER) {
+      messageIdentifier = identifier - FIRST_PROPERTY_IDENTIFIER;
+      handleProperty(messageIdentifier);
     }
   }
 }
 
-void performPropertySync(byte identifier, uint16_t value) {
+void handleBezier(byte identifier) {
+  Bezier bezier;
+  byte headerSize = 4;
+  byte header[headerSize];
+  
+  for (int i = 0; i < headerSize; i++) {
+    header[i] = BLEMini.read();
+  }
+  
+  bezier.type = header[0];
+  bezier.maxX = header[1];
+  bezier.maxY = header[2];
+  bezier.numPoints = header[3];
+  bezier.cacheIsValid = false;
+  
+  byte bodySize = header[3];
+  byte body[bodySize];
+  
+  if (BLEMini.available() >= bodySize * 2) {
+    
+    for (byte i = 0; i < bodySize; i++) {
+      byte pointX = BLEMini.read();
+      byte pointY = BLEMini.read();
+      
+      body[i] = pointX;
+      body[i + 1] = pointY;
+      
+      bezier.points[i].x = pointX;
+      bezier.points[i].y = pointY;
+    }
+    
+    switch(bezier.type) {
+      case CURVE_TYPE_ASSIST:
+        assist = bezier;
+        break;
+      case CURVE_TYPE_DAMPING:
+        damping = bezier;
+        break;
+      case CURVE_TYPE_REGEN:
+        regen = bezier;
+        break;
+      default:
+        Serial.println("Unrecognized Curve Identifier");
+    }
+    
+    byte messageData[headerSize + bodySize];
+    for (byte i = 0; i < headerSize; i++) {
+      messageData[i] = header[i];
+    }
+    
+    for (byte i = 0; i < bodySize; i++) {
+      messageData[i + headerSize] = body[i];
+    }
+    
+    BLEMini.write(identifier + FIRST_BEZIER_IDENTIFIER);
+    for (byte i = 0; i < headerSize + bodySize; i++) {
+      BLEMini.write(messageData[i]);
+    }
+  }
+  else {
+    clearBLEBuffer();
+  }
+}
+
+void handleProperty(byte identifier) {
+  if ( BLEMini.available() >= 2) {
+    
+    byte data1 = BLEMini.read();
+    byte data2 = BLEMini.read();
+    uint16_t value = (data2 << 8) + data1;
+    
+    if (properties[identifier].value != value) {
+      properties[identifier].value = value;
+      properties[identifier].pendingSave = true;
+    }
+    
+    BLEMini.write(identifier + FIRST_PROPERTY_IDENTIFIER);
+    BLEMini.write(data1);
+    BLEMini.write(data2);
+  }
+  else {
+    clearBLEBuffer();
+  }
+}
+
+void clearBLEBuffer() {
+  while(BLEMini.available() > 0) {
+    BLEMini.read();
+  }
+}
+
+void handleCommand(byte identifier) {
+  if (identifier == REQUEST_CONNECT) {
+    performConnect();
+  }
+  else if (identifier == REQUEST_DISCONNECT) {
+    performDisconnect();
+  }
+}
+
+void performSync(byte identifier, byte data[], byte length) {
   digitalWrite(INDICATOR_LED_PIN, HIGH);
   
   BLEMini.write(identifier);
-  BLEMini.write(value);
-  BLEMini.write(value >> 8);
+  
+  for (int i = 0; i < length; i++) {
+    BLEMini.write(data[i]);
+  }
+  
 }
 
 void performConnect() {

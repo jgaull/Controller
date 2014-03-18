@@ -139,6 +139,10 @@ void handleBezier(byte identifier) {
   
   for (int i = 0; i < headerSize; i++) {
     header[i] = BLEMini.read();
+    Serial.print("header[");
+    Serial.print(i);
+    Serial.print("] = ");
+    Serial.println(header[i]);
   }
   
   bezier.type = header[0];
@@ -147,31 +151,44 @@ void handleBezier(byte identifier) {
   bezier.numPoints = header[3];
   bezier.cacheIsValid = false;
   
-  byte bodySize = header[3];
+  byte bodySize = header[3] * 2;
   byte body[bodySize];
   
-  if (BLEMini.available() >= bodySize * 2) {
+  Serial.print("bodySize = ");
+  Serial.println(bodySize);
+  
+  if (BLEMini.available() >= bodySize) {
     
-    for (byte i = 0; i < bodySize; i++) {
+    for (byte i = 0; i < bodySize; i += 2) {
       byte pointX = BLEMini.read();
       byte pointY = BLEMini.read();
       
       body[i] = pointX;
       body[i + 1] = pointY;
       
-      bezier.points[i].x = pointX;
-      bezier.points[i].y = pointY;
+      bezier.points[i / 2].x = pointX;
+      bezier.points[i / 2].y = pointY;
+      
+      Serial.print("point[");
+      Serial.print(i / 2);
+      Serial.print("] = ");
+      Serial.print(bezier.points[i / 2].x);
+      Serial.print(", ");
+      Serial.println(bezier.points[i / 2].y);
     }
     
     switch(bezier.type) {
       case CURVE_TYPE_ASSIST:
         assist = bezier;
+        Serial.println("assist");
         break;
       case CURVE_TYPE_DAMPING:
         damping = bezier;
+        Serial.println("damping");
         break;
       case CURVE_TYPE_REGEN:
         regen = bezier;
+        Serial.println("regen");
         break;
       default:
         Serial.println("Unrecognized Curve Identifier");
@@ -187,9 +204,15 @@ void handleBezier(byte identifier) {
     }
     
     BLEMini.write(identifier + FIRST_BEZIER_IDENTIFIER);
+    Serial.print(identifier + FIRST_BEZIER_IDENTIFIER);
+    Serial.print(", ");
     for (byte i = 0; i < headerSize + bodySize; i++) {
       BLEMini.write(messageData[i]);
+      Serial.print(messageData[i]);
+      Serial.print(", ");
     }
+    
+    Serial.println("");
   }
   else {
     clearBLEBuffer();

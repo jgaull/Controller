@@ -55,6 +55,9 @@
 //Used to sync iOS to Arduino
 #define REQUEST_CONNECT 0
 #define REQUEST_DISCONNECT 1
+#define REQUEST_GET_PROPERTY_VALUE 2
+#define REQUEST_GET_SENSOR_VALUE 3
+#define REQUEST_SET_PROPERTY_VALUE 4
 
 //Bezier Calls
 #define ADD_BEZIER 0

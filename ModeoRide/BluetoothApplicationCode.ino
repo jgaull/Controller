@@ -139,10 +139,12 @@ void handleBezier(byte identifier) {
   
   for (int i = 0; i < headerSize; i++) {
     header[i] = BLEMini.read();
+    /*
     Serial.print("header[");
     Serial.print(i);
     Serial.print("] = ");
     Serial.println(header[i]);
+    */
   }
   
   bezier.type = header[0];
@@ -153,9 +155,10 @@ void handleBezier(byte identifier) {
   
   byte bodySize = header[3] * 2;
   byte body[bodySize];
-  
+  /*
   Serial.print("bodySize = ");
   Serial.println(bodySize);
+  */
   
   if (BLEMini.available() >= bodySize) {
     
@@ -169,12 +172,14 @@ void handleBezier(byte identifier) {
       bezier.points[i / 2].x = pointX;
       bezier.points[i / 2].y = pointY;
       
+      /*
       Serial.print("point[");
       Serial.print(i / 2);
       Serial.print("] = ");
       Serial.print(bezier.points[i / 2].x);
       Serial.print(", ");
       Serial.println(bezier.points[i / 2].y);
+      */
     }
     
     switch(bezier.type) {
@@ -204,15 +209,9 @@ void handleBezier(byte identifier) {
     }
     
     BLEMini.write(identifier + FIRST_BEZIER_IDENTIFIER);
-    Serial.print(identifier + FIRST_BEZIER_IDENTIFIER);
-    Serial.print(", ");
     for (byte i = 0; i < headerSize + bodySize; i++) {
       BLEMini.write(messageData[i]);
-      Serial.print(messageData[i]);
-      Serial.print(", ");
     }
-    
-    Serial.println("");
   }
   else {
     clearBLEBuffer();
@@ -247,12 +246,22 @@ void clearBLEBuffer() {
 }
 
 void handleCommand(byte identifier) {
+  
+  byte bleResponse;
   if (identifier == REQUEST_CONNECT) {
-    performConnect();
+    Serial.println("connect");
+    stopSensorUpdates();
+    bleResponse = NUM_PROPERTIES;
   }
   else if (identifier == REQUEST_DISCONNECT) {
-    performDisconnect();
+    Serial.println("disconnect");
+    storeCalibrations();
+    stopSensorUpdates();
+    bleResponse = 1;
   }
+  
+  BLEMini.write(identifier);
+  BLEMini.write(bleResponse);
 }
 
 void performSync(byte identifier, byte data[], byte length) {
@@ -264,37 +273,6 @@ void performSync(byte identifier, byte data[], byte length) {
     BLEMini.write(data[i]);
   }
   
-}
-
-void performConnect() {
-  digitalWrite(INDICATOR_LED_PIN, HIGH);
-  
-  /*
-  Serial.println(micros());
-  Serial.println("   SYNC START");
-  Serial.println(identifier);
-  */
-  
-  stopSensorUpdates();
-  
-  for (byte i = 0; i < NUM_PROPERTIES; i++) {
-    BLEMini.write(i + FIRST_PROPERTY_IDENTIFIER);
-    BLEMini.write(properties[i].value);
-    BLEMini.write(properties[i].value >> 8);
-    Serial.print("i: ");
-    Serial.println(i);
-    delay(25);
-  }
-  
-  /*
-  Serial.println(micros());
-  Serial.println("  SYNC END");
-  */
-}
-
-void performDisconnect() {
-  stopSensorUpdates();
-  storeCalibrations();
 }
 
 void stopSensorUpdates() {

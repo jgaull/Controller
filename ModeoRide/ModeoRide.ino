@@ -2,7 +2,7 @@
 /*
 ModeoRide Mk3
 Jon Gaull and Isaac Meadows
-January 2012
+January 2013
 
 Notes:
 Mk1- Ended with basic strain guage filtering, assist application, on/off commands according to switch, non trq messages sent by array

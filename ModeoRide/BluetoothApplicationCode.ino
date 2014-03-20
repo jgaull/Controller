@@ -102,14 +102,14 @@ void performBluetoothReceive() {
 
 void performBluetoothReceive() {
   if (BLEMini.available() > 0) {
-    Serial.print("available: ");
-    Serial.println(BLEMini.available());
+    //Serial.print("available: ");
+    //Serial.println(BLEMini.available());
     
     byte identifier = BLEMini.read();
     byte messageIdentifier;
     
-    Serial.print("identifier: ");
-    Serial.println(identifier);
+    //Serial.print("identifier: ");
+    //Serial.println(identifier);
     
     if (identifier >= FIRST_BEZIER_IDENTIFIER) {
       messageIdentifier = identifier - FIRST_BEZIER_IDENTIFIER;
@@ -250,8 +250,7 @@ void handleCommand(byte identifier) {
   byte bleResponse;
   if (identifier == REQUEST_CONNECT) {
     Serial.println("connect");
-    stopSensorUpdates();
-    bleResponse = NUM_PROPERTIES;
+    
   }
   else if (identifier == REQUEST_DISCONNECT) {
     Serial.println("disconnect");
@@ -260,8 +259,44 @@ void handleCommand(byte identifier) {
     bleResponse = 1;
   }
   
-  BLEMini.write(identifier);
-  BLEMini.write(bleResponse);
+  switch(identifier) {
+    case REQUEST_CONNECT:
+      Serial.println("connect");
+      performConnect();
+      break;
+      
+    case REQUEST_DISCONNECT:
+      Serial.println("disconnect");
+      performDisconnect();
+      break;
+      
+    case REQUEST_GET_PROPERTY_VALUE:
+      sendPropertyValue(identifier, BLEMini.read());
+      break;
+      
+    default:
+      Serial.print("Uknown command: ");
+      Serial.println(identifier);
+  }
+}
+
+void performConnect() {
+  stopSensorUpdates();
+  BLEMini.write(FIRST_COMMAND_IDENTIFIER + REQUEST_CONNECT);
+  BLEMini.write(NUM_PROPERTIES);
+}
+
+void performDisconnect() {
+  storeCalibrations();
+  stopSensorUpdates();
+  BLEMini.write(FIRST_COMMAND_IDENTIFIER + REQUEST_DISCONNECT);
+  BLEMini.write(1);
+}
+
+void sendPropertyValue(byte commandIdentifier, byte propertyIdentifier) {
+  BLEMini.write(FIRST_COMMAND_IDENTIFIER + commandIdentifier);
+  BLEMini.write(properties[propertyIdentifier].value);
+  BLEMini.write(properties[propertyIdentifier].value >> 8);
 }
 
 void performSync(byte identifier, byte data[], byte length) {

@@ -24,126 +24,131 @@ void performBluetoothSend() {
   digitalWrite(INDICATOR_LED_PIN, hasSentValue);
 }
 
-/*
 void performBluetoothReceive() {
-  
-  if (BLEMini.available() > 0) {
+  while ( BLEMini.available() > 0) {
     
-    Serial.print("Available: ");
-    Serial.println(BLEMini.available());
-    
-    if ( BLEMini.available() % 3 == 0)
-    {
-      byte identifier = BLEMini.read();
-      byte data1 = BLEMini.read();
-      byte data2 = BLEMini.read();
-      
-      uint16_t value = (data2 << 8) + data1;
-      
-      Serial.print("Identifier: ");
-      Serial.println(identifier);
-      Serial.print("Value: ");
-      Serial.println(value);
-      
-      if (identifier >= FIRST_COMMAND_IDENTIFIER) {
-        byte commandIdentifier = identifier - FIRST_COMMAND_IDENTIFIER;
-        
-        if (commandIdentifier == REQUEST_CONNECT) {
-          performConnect();
-        }
-        else if (commandIdentifier == REQUEST_DISCONNECT) {
-          performDisconnect();
-        }
-        
-        return;
-      }
-      
-      byte propertyIdentifier = identifier - FIRST_PROPERTY_IDENTIFIER;
-      if (properties[propertyIdentifier].value != value) {
-        properties[propertyIdentifier].value = value;
-        properties[propertyIdentifier].pendingSave = true;
-      }
-      
-      switch(identifier) {
-        case PROPERTY_STRAIN_DAMPING_CONTROL1_X:
-        case PROPERTY_STRAIN_DAMPING_CONTROL1_Y:
-        case PROPERTY_STRAIN_DAMPING_CONTROL2_X:
-        case PROPERTY_STRAIN_DAMPING_CONTROL2_Y:
-          buildDampingCurve();
-          break;
-        case PROPERTY_ASSIST_1_X:
-        case PROPERTY_ASSIST_1_Y:
-        case PROPERTY_ASSIST_2_X:
-        case PROPERTY_ASSIST_2_Y:
-          buildAssistCurve();
-          break;
-        case PROPERTY_REGEN_1_X:
-        case PROPERTY_REGEN_1_Y:
-        case PROPERTY_REGEN_2_X:
-        case PROPERTY_REGEN_2_Y:
-          buildRegenCurve();
-          break;
-        case PROPERTY_SENSITIVITY_1_X:
-        case PROPERTY_SENSITIVITY_1_Y:
-        case PROPERTY_SENSITIVITY_2_X:
-        case PROPERTY_SENSITIVITY_2_Y:
-          buildSensitivityCurve();
-          break;
-      }
-      
-      performPropertySync(identifier, value);
-    }
-    else {
-      clearBLEBuffer();
-    }
-  }
-}
-*/
-
-void performBluetoothReceive() {
-  if (BLEMini.available() > 0) {
-    Serial.print("available: ");
-    Serial.println(BLEMini.available());
+    //Serial.print("available: ");
+    //Serial.println(BLEMini.available());
     
     byte identifier = BLEMini.read();
     byte messageIdentifier;
     
-    Serial.print("identifier: ");
-    Serial.println(identifier);
+    //Serial.print("identifier: ");
+    //Serial.println(identifier);
     
-    if (identifier >= FIRST_BEZIER_IDENTIFIER) {
-      messageIdentifier = identifier - FIRST_BEZIER_IDENTIFIER;
-      handleBezier(messageIdentifier);
-    }
-    else if (identifier >= FIRST_COMMAND_IDENTIFIER) {
-      messageIdentifier = identifier - FIRST_COMMAND_IDENTIFIER;
-      handleCommand(messageIdentifier);
-    }
-    else if (identifier >= FIRST_EVENT_IDENTIFIER) {
-      //This doesn't do anything yet. Maybe not ever.
-    }
-    else if (identifier >= FIRST_SENSOR_IDENTIFIER) {
-      //This doesn't do anything. Proably ever.
-    }
-    else {
-      clearBLEBuffer();
+    switch(identifier) {
+      case REQUEST_CONNECT:
+        Serial.println("connect");
+        performConnect();
+        break;
+        
+      case REQUEST_DISCONNECT:
+        Serial.println("disconnect");
+        performDisconnect();
+        break;
+        
+      case REQUEST_GET_PROPERTY_VALUE:
+        Serial.println("send property");
+        getPropertyValue();
+        break;
+        
+      case REQUEST_SET_PROPERTY_VALUE:
+        Serial.println("set property");
+        setPropertyValue();
+        break;
+        
+      case REQUEST_ADD_BEZIER:
+        Serial.println("bezier");
+        addBezier();
+        break;
+        
+      case REQUEST_GET_SENSOR_VALUE:
+        Serial.println("get sensor value");
+        getSensorValue();
+        break;
+        
+      default:
+        Serial.print("Uknown command: ");
+        Serial.println(identifier);
+        clearBLEBuffer();
     }
   }
 }
 
-void handleBezier(byte identifier) {
+void performConnect() {
+  stopSensorUpdates();
+  BLEMini.write((byte)REQUEST_CONNECT);
+  BLEMini.write(NUM_PROPERTIES);
+}
+
+void performDisconnect() {
+  storeCalibrations();
+  stopSensorUpdates();
+  BLEMini.write(REQUEST_DISCONNECT);
+  BLEMini.write(1);
+}
+
+void getPropertyValue() {
+  if ( BLEMini.available() >= 1) {
+    byte propertyIdentifier = BLEMini.read();
+    syncProperty(REQUEST_GET_PROPERTY_VALUE, propertyIdentifier);
+  }
+  else {
+    clearBLEBuffer();
+  }
+}
+
+void setPropertyValue() {
+  if ( BLEMini.available() >= 3) {
+    
+    byte propertyIdentifier = BLEMini.read();
+    byte data1 = BLEMini.read();
+    byte data2 = BLEMini.read();
+    unsigned short value = (data2 << 8) + data1;
+    
+    if (properties[propertyIdentifier].value != value) {
+      properties[propertyIdentifier].value = value;
+      properties[propertyIdentifier].pendingSave = true;
+    }
+    
+    syncProperty(REQUEST_SET_PROPERTY_VALUE, propertyIdentifier);
+  }
+  else {
+    clearBLEBuffer();
+  }
+}
+
+void syncProperty(byte commandIdentifier, byte propertyIdentifier) {
+  BLEMini.write(commandIdentifier);
+  BLEMini.write(propertyIdentifier);
+  BLEMini.write(properties[propertyIdentifier].value);
+  BLEMini.write(properties[propertyIdentifier].value >> 8);
+}
+
+void getSensorValue() {
+  if (BLEMini.available() >= 1) {
+    
+    byte sensorIdentifier = BLEMini.read();
+    
+    unsigned short value = sensors[sensorIdentifier].value;
+    
+    BLEMini.write(REQUEST_GET_SENSOR_VALUE);
+    BLEMini.write(sensorIdentifier);
+    BLEMini.write(value);
+    BLEMini.write(value >> 8);
+  }
+  else {
+    clearBLEBuffer();
+  }
+}
+
+void addBezier() {
   Bezier bezier;
   byte headerSize = 4;
   byte header[headerSize];
   
   for (int i = 0; i < headerSize; i++) {
     header[i] = BLEMini.read();
-    /*
-    Serial.print("header[");
-    Serial.print(i);
-    Serial.print("] = ");
-    Serial.println(header[i]);
-    */
   }
   
   bezier.type = header[0];
@@ -154,10 +159,6 @@ void handleBezier(byte identifier) {
   
   byte bodySize = header[3] * 2;
   byte body[bodySize];
-  /*
-  Serial.print("bodySize = ");
-  Serial.println(bodySize);
-  */
   
   if (BLEMini.available() >= bodySize) {
     
@@ -170,15 +171,6 @@ void handleBezier(byte identifier) {
       
       bezier.points[i / 2].x = pointX;
       bezier.points[i / 2].y = pointY;
-      
-      /*
-      Serial.print("point[");
-      Serial.print(i / 2);
-      Serial.print("] = ");
-      Serial.print(bezier.points[i / 2].x);
-      Serial.print(", ");
-      Serial.println(bezier.points[i / 2].y);
-      */
     }
     
     switch(bezier.type) {
@@ -207,7 +199,7 @@ void handleBezier(byte identifier) {
       messageData[i + headerSize] = body[i];
     }
     
-    BLEMini.write(identifier + FIRST_BEZIER_IDENTIFIER);
+    BLEMini.write(REQUEST_ADD_BEZIER);
     for (byte i = 0; i < headerSize + bodySize; i++) {
       BLEMini.write(messageData[i]);
     }
@@ -221,88 +213,6 @@ void clearBLEBuffer() {
   while(BLEMini.available() > 0) {
     BLEMini.read();
   }
-}
-
-void handleCommand(byte identifier) {
-  
-  switch(identifier) {
-    case REQUEST_CONNECT:
-      Serial.println("connect");
-      performConnect();
-      break;
-      
-    case REQUEST_DISCONNECT:
-      Serial.println("disconnect");
-      performDisconnect();
-      break;
-      
-    case REQUEST_GET_PROPERTY_VALUE:
-      sendPropertyValue(identifier, BLEMini.read());
-      break;
-      
-    case REQUEST_SET_PROPERTY_VALUE:
-      setPropertyValue(identifier, BLEMini.read());
-      break;
-      
-    default:
-      Serial.print("Uknown command: ");
-      Serial.println(identifier);
-  }
-}
-
-void setPropertyValue(byte commandIdentifier, byte propertyIdentifier) {
-  Serial.println("set property value");
-  Serial.print("available: ");
-  Serial.println(BLEMini.available());
-  if ( BLEMini.available() >= 2) {
-    
-    byte data1 = BLEMini.read();
-    byte data2 = BLEMini.read();
-    unsigned short value = (data2 << 8) + data1;
-    
-    Serial.print("set property: ");
-    Serial.println(propertyIdentifier);
-    Serial.print("value: ");
-    Serial.println(value);
-    
-    if (properties[propertyIdentifier].value != value) {
-      properties[propertyIdentifier].value = value;
-      properties[propertyIdentifier].pendingSave = true;
-    }
-    
-    sendPropertyValue(commandIdentifier, propertyIdentifier);
-  }
-}
-
-void performConnect() {
-  stopSensorUpdates();
-  BLEMini.write(FIRST_COMMAND_IDENTIFIER + REQUEST_CONNECT);
-  BLEMini.write(NUM_PROPERTIES);
-}
-
-void performDisconnect() {
-  storeCalibrations();
-  stopSensorUpdates();
-  BLEMini.write(FIRST_COMMAND_IDENTIFIER + REQUEST_DISCONNECT);
-  BLEMini.write(1);
-}
-
-void sendPropertyValue(byte commandIdentifier, byte propertyIdentifier) {
-  BLEMini.write(FIRST_COMMAND_IDENTIFIER + commandIdentifier);
-  BLEMini.write(FIRST_PROPERTY_IDENTIFIER + propertyIdentifier);
-  BLEMini.write(properties[propertyIdentifier].value);
-  BLEMini.write(properties[propertyIdentifier].value >> 8);
-}
-
-void performSync(byte identifier, byte data[], byte length) {
-  digitalWrite(INDICATOR_LED_PIN, HIGH);
-  
-  BLEMini.write(identifier);
-  
-  for (int i = 0; i < length; i++) {
-    BLEMini.write(data[i]);
-  }
-  
 }
 
 void stopSensorUpdates() {

@@ -4,12 +4,7 @@ void performBluetoothSend() {
   
   for (byte i = 0; i < NUM_SENSORS; i++) {
     
-    uint16_t value = properties[sensors[i].propertyAddress].value;
-    if (i == SENSOR_FILTERED_RIDER_EFFORT + FIRST_SENSOR_IDENTIFIER) {
-      Serial.print("value = ");
-      Serial.println(value);
-    }
-    
+    unsigned short value = properties[sensors[i].propertyAddress].value;
     if ( value > 0 && sensors[i].isFresh ) {
       BLEMini.write(sensors[i].dataIdentifier);
       BLEMini.write(sensors[i].value);
@@ -316,7 +311,7 @@ void stopSensorUpdates() {
 void constructBLESensors() {
   
   for (byte i = 0; i < NUM_SENSORS; i++) {
-    sensors[i].dataIdentifier = i + FIRST_SENSOR_IDENTIFIER;
+    sensors[i].dataIdentifier = i;
     sensors[i].value = 0;
     sensors[i].isFresh = false;
   }

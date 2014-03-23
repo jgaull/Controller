@@ -77,6 +77,11 @@ void performBluetoothReceive() {
         writeBezier();
         break;
         
+      case REQUEST_WRITE_GET_PROPERTY:
+        Serial.println("write get property");
+        writeGetProperty();
+        break;
+        
       default:
         Serial.print("Uknown command: ");
         Serial.println(identifier);
@@ -102,6 +107,23 @@ void getPropertyValue() {
   if ( BLEMini.available() >= 1) {
     byte propertyIdentifier = BLEMini.read();
     syncProperty(REQUEST_GET_PROPERTY_VALUE, propertyIdentifier);
+  }
+  else {
+    clearBLEBuffer();
+  }
+}
+
+void writeGetProperty() {
+  if ( BLEMini.available() >= 3 ) {
+    byte propertyIdentifier = BLEMini.read();
+    byte data1 = BLEMini.read();
+    byte data2 = BLEMini.read();
+    unsigned short value = (data2 << 8) + data1;
+    
+    if ( properties[propertyIdentifier].value == value ) {
+      BLEMini.write(REQUEST_WRITE_GET_PROPERTY);
+      BLEMini.write(propertyIdentifier);
+    }
   }
   else {
     clearBLEBuffer();

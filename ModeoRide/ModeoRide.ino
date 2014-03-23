@@ -80,6 +80,8 @@ Property properties[NUM_PROPERTIES];
 Property propertyPendingSave;
 byte propertyIdentifierForPropertyPendingSave;
 
+Bezier bezierPendingSave;
+
 boolean lastButtonState = false;
 
 AltSoftSerial BLEMini;

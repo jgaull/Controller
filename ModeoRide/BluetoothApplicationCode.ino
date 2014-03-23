@@ -72,6 +72,11 @@ void performBluetoothReceive() {
         writeProperty();
         break;
         
+      case REQUEST_WRITE_BEZIER:
+        Serial.println("write bezier");
+        writeBezier();
+        break;
+        
       default:
         Serial.print("Uknown command: ");
         Serial.println(identifier);
@@ -140,16 +145,6 @@ void writeProperty() {
       properties[propertyIdentifier].value = propertyPendingSave.value;
       properties[propertyIdentifier].pendingSave = propertyPendingSave.pendingSave;
       success = true;
-      
-      Serial.print("propertyPendingSave.value: ");
-      Serial.println(propertyPendingSave.value);
-      Serial.print("propertyPendingSave.pendingSave: ");
-      Serial.println(propertyPendingSave.pendingSave);
-      Serial.print("propertyIdentifier: ");
-      Serial.println(propertyIdentifier);
-    }
-    else {
-      Serial.println("missmatched property id's");
     }
     
     BLEMini.write(REQUEST_WRITE_PROPERTY);
@@ -225,22 +220,7 @@ void addBezier() {
       bezier.points[i / 2].y = pointY;
     }
     
-    switch(bezier.type) {
-      case CURVE_TYPE_ASSIST:
-        assist = bezier;
-        Serial.println("assist");
-        break;
-      case CURVE_TYPE_DAMPING:
-        damping = bezier;
-        Serial.println("damping");
-        break;
-      case CURVE_TYPE_REGEN:
-        regen = bezier;
-        Serial.println("regen");
-        break;
-      default:
-        Serial.println("Unrecognized Curve Identifier");
-    }
+    bezierPendingSave = bezier;
     
     byte messageData[headerSize + bodySize];
     for (byte i = 0; i < headerSize; i++) {
@@ -254,6 +234,44 @@ void addBezier() {
     BLEMini.write(REQUEST_ADD_BEZIER);
     for (byte i = 0; i < headerSize + bodySize; i++) {
       BLEMini.write(messageData[i]);
+    }
+  }
+  else {
+    clearBLEBuffer();
+  }
+}
+
+void writeBezier() {
+  
+  if (BLEMini.available() >= 1) {
+    byte bezierType = BLEMini.read();
+    
+    boolean success = false;
+    if (bezierType == bezierPendingSave.type) {
+      switch(bezierPendingSave.type) {
+        case CURVE_TYPE_ASSIST:
+          assist = bezierPendingSave;
+          Serial.println("assist");
+          break;
+        case CURVE_TYPE_DAMPING:
+          damping = bezierPendingSave;
+          Serial.println("damping");
+          break;
+        case CURVE_TYPE_REGEN:
+          regen = bezierPendingSave;
+          Serial.println("regen");
+          break;
+        default:
+          Serial.println("Unrecognized Curve Identifier");
+      }
+      
+      success = true;
+      
+      BLEMini.write(REQUEST_WRITE_BEZIER);
+      BLEMini.write(success);
+    }
+    else {
+      Serial.println("bezier type did not match. flail.");
     }
   }
   else {

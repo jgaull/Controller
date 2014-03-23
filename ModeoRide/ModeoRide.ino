@@ -77,6 +77,9 @@ boolean trqCmdTxFlag = false;
 Sensor sensors[NUM_SENSORS];
 Property properties[NUM_PROPERTIES];
 
+Property propertyPendingSave;
+byte propertyIdentifierForPropertyPendingSave;
+
 boolean lastButtonState = false;
 
 AltSoftSerial BLEMini;

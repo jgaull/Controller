@@ -67,6 +67,11 @@ void performBluetoothReceive() {
         getSensorValue();
         break;
         
+      case REQUEST_WRITE_PROPERTY:
+        Serial.println("write property");
+        writeProperty();
+        break;
+        
       default:
         Serial.print("Uknown command: ");
         Serial.println(identifier);
@@ -106,16 +111,63 @@ void setPropertyValue() {
     byte data2 = BLEMini.read();
     unsigned short value = (data2 << 8) + data1;
     
-    if (properties[propertyIdentifier].value != value) {
-      properties[propertyIdentifier].value = value;
-      properties[propertyIdentifier].pendingSave = true;
+    Property newProperty = copyProperty(propertyIdentifier);
+    newProperty.value = value;
+    
+    if (properties[propertyIdentifier].value != newProperty.value) {
+      newProperty.pendingSave = true;
     }
     
-    syncProperty(REQUEST_SET_PROPERTY_VALUE, propertyIdentifier);
+    propertyPendingSave = newProperty;
+    propertyIdentifierForPropertyPendingSave = propertyIdentifier;
+    
+    BLEMini.write(REQUEST_SET_PROPERTY_VALUE);
+    BLEMini.write(propertyIdentifier);
+    BLEMini.write(data1);
+    BLEMini.write(data2);
   }
   else {
     clearBLEBuffer();
   }
+}
+
+void writeProperty() {
+  if ( BLEMini.available() >= 1 ) {
+    byte propertyIdentifier = BLEMini.read();
+    
+    boolean success = false;
+    if ( propertyIdentifierForPropertyPendingSave == propertyIdentifier) {
+      properties[propertyIdentifier].value = propertyPendingSave.value;
+      properties[propertyIdentifier].pendingSave = propertyPendingSave.pendingSave;
+      success = true;
+      
+      Serial.print("propertyPendingSave.value: ");
+      Serial.println(propertyPendingSave.value);
+      Serial.print("propertyPendingSave.pendingSave: ");
+      Serial.println(propertyPendingSave.pendingSave);
+      Serial.print("propertyIdentifier: ");
+      Serial.println(propertyIdentifier);
+    }
+    else {
+      Serial.println("missmatched property id's");
+    }
+    
+    BLEMini.write(REQUEST_WRITE_PROPERTY);
+    BLEMini.write(success);
+  }
+  else {
+    clearBLEBuffer();
+  }
+}
+
+Property copyProperty(byte propertyIdentifier) {
+  Property newProperty;
+  
+  newProperty.eepromSave = properties[propertyIdentifier].eepromSave;
+  newProperty.value = properties[propertyIdentifier].value;
+  newProperty.pendingSave = properties[propertyIdentifier].pendingSave;
+  
+  return newProperty;
 }
 
 void syncProperty(byte commandIdentifier, byte propertyIdentifier) {

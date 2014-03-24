@@ -6,16 +6,14 @@
 #define SENSOR_TORQUE_APPLIED 4
 #define SENSOR_MOTOR_TEMP 5
 #define SENSOR_BATTERY_VOLTAGE 6
-#define SENSOR_POWER_OUTPUT 7
-#define SENSOR_STROKE_LENGTH 8
-#define SENSOR_FILTERED_RIDER_EFFORT 9
+#define SENSOR_FILTERED_RIDER_EFFORT 7
 
-#define NUM_SENSORS 10 //Is there a better way to do this?
+#define NUM_SENSORS 8 //Is there a better way to do this?
 
 //Properties
 #define PROPERTY_SMOOTHING_MIN 0
 #define PROPERTY_SMOOTHING_MAX 1
-#define PROPERTY_MAX_OUTPUT 2
+//#define PROPERTY_MAX_OUTPUT 2
 #define PROPERTY_STROKE_TIMEOUT_CYCLES 3
 #define PROPERTY_MAX_EFFORT 4
 #define PROPERTY_TORQUE_MULTIPLIER 5
@@ -52,7 +50,7 @@
 
 #define NUM_PROPERTIES 36 //Is there a better way to do this?
 
-//Used to sync iOS to Arduino
+//Request Identifiers
 #define REQUEST_CONNECT 0
 #define REQUEST_DISCONNECT 1
 #define REQUEST_GET_PROPERTY_VALUE 2

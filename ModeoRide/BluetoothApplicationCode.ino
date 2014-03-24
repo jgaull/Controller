@@ -82,6 +82,8 @@ void performBluetoothReceive() {
         Serial.println(identifier);
         clearBLEBuffer();
     }
+    
+    clearBLEBuffer();
   }
 }
 
@@ -172,16 +174,6 @@ void writeProperty() {
   }
 }
 
-Property copyProperty(byte propertyIdentifier) {
-  Property newProperty;
-  
-  newProperty.eepromSave = properties[propertyIdentifier].eepromSave;
-  newProperty.value = properties[propertyIdentifier].value;
-  newProperty.pendingSave = properties[propertyIdentifier].pendingSave;
-  
-  return newProperty;
-}
-
 void syncProperty(byte commandIdentifier, byte propertyIdentifier) {
   BLEMini.write(commandIdentifier);
   BLEMini.write(propertyIdentifier);
@@ -265,19 +257,24 @@ void writeBezier() {
     
     boolean success = false;
     if (bezierType == bezierPendingSave.type) {
+      
       switch(bezierPendingSave.type) {
+        
         case CURVE_TYPE_ASSIST:
           assist = bezierPendingSave;
           Serial.println("assist");
           break;
+          
         case CURVE_TYPE_DAMPING:
           damping = bezierPendingSave;
           Serial.println("damping");
           break;
+          
         case CURVE_TYPE_REGEN:
           regen = bezierPendingSave;
           Serial.println("regen");
           break;
+          
         default:
           Serial.println("Unrecognized Curve Identifier");
       }
@@ -295,6 +292,28 @@ void writeBezier() {
     clearBLEBuffer();
   }
 }
+
+/*
+void unitTestAssist() {
+  
+  for ( int i = 0; i <= assist.maxX; i++) {
+    Serial.print(i);
+    Serial.print(",");
+    Serial.println(mapEffortToPower(i));
+  }
+  
+}
+
+void unitTestDamping() {
+  
+  for ( int i = 0; i <= damping.maxX; i++) {
+    Serial.print(i);
+    Serial.print(",");
+    Serial.println(mapSpeedToDamping(i));
+  }
+  
+}
+*/
 
 void clearBLEBuffer() {
   while(BLEMini.available() > 0) {
@@ -323,8 +342,6 @@ void constructBLESensors() {
   sensors[SENSOR_TORQUE_APPLIED].propertyAddress = PROPERTY_SENSOR_TORQUE_APPLIED_STATE;
   sensors[SENSOR_MOTOR_TEMP].propertyAddress = PROPERTY_SENSOR_MOTOR_TEMP_STATE;
   sensors[SENSOR_BATTERY_VOLTAGE].propertyAddress = PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE;
-  sensors[SENSOR_POWER_OUTPUT].propertyAddress = PROPERTY_SENSOR_POWER_OUTPUT_STATE;
-  sensors[SENSOR_STROKE_LENGTH].propertyAddress = PROPERTY_SENSOR_STROKE_LENGTH_STATE;
   sensors[SENSOR_FILTERED_RIDER_EFFORT].propertyAddress = PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE;
 }
 
@@ -348,5 +365,12 @@ void constructBLEProperties() {
   properties[PROPERTY_TORQUE_MULTIPLIER].eepromSave = false;
 }
 
-
-
+Property copyProperty(byte propertyIdentifier) {
+  Property newProperty;
+  
+  newProperty.eepromSave = properties[propertyIdentifier].eepromSave;
+  newProperty.value = properties[propertyIdentifier].value;
+  newProperty.pendingSave = properties[propertyIdentifier].pendingSave;
+  
+  return newProperty;
+}

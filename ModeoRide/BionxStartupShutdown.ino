@@ -5,11 +5,6 @@ void activateBionx(){
    
   //digitalWrite(WAKE_RELAY_PIN,LOW);
   digitalWrite(INDICATOR_LED_PIN, LOW);
-   
-  buildDampingCurve();
-  buildAssistCurve();
-  buildRegenCurve();
-  buildSensitivityCurve();
   
   //delay(500);
   

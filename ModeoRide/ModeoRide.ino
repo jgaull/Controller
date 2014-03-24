@@ -59,12 +59,6 @@ float riderEffort = 0;
 float filteredRiderEffort = 0;
 
 float strainDampingMultiplier = 0.0f;
-point strainDampingCurve[RESOLUTION];
-
-point assistCurve[RESOLUTION];
-point sensitivityCurve[RESOLUTION];
-point regenCurve[RESOLUTION];
-point powerOutputCurve[RESOLUTION];
 
 Bezier assist;
 Bezier regen;

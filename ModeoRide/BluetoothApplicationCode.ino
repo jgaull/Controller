@@ -20,7 +20,7 @@ void performBluetoothSend() {
 }
 
 void performBluetoothReceive() {
-  while ( BLEMini.available() > 0) {
+  if ( BLEMini.available() ) {
     
     //Serial.print("available: ");
     //Serial.println(BLEMini.available());
@@ -292,28 +292,6 @@ void writeBezier() {
     clearBLEBuffer();
   }
 }
-
-/*
-void unitTestAssist() {
-  
-  for ( int i = 0; i <= assist.maxX; i++) {
-    Serial.print(i);
-    Serial.print(",");
-    Serial.println(mapEffortToPower(i));
-  }
-  
-}
-
-void unitTestDamping() {
-  
-  for ( int i = 0; i <= damping.maxX; i++) {
-    Serial.print(i);
-    Serial.print(",");
-    Serial.println(mapSpeedToDamping(i));
-  }
-  
-}
-*/
 
 void clearBLEBuffer() {
   while(BLEMini.available() > 0) {

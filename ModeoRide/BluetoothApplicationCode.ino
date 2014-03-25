@@ -43,7 +43,7 @@ void performBluetoothReceive() {
         break;
         
       case REQUEST_GET_PROPERTY_VALUE:
-        Serial.println("send property");
+        Serial.println("get property");
         getPropertyValue();
         break;
         
@@ -103,7 +103,18 @@ void performDisconnect() {
 void getPropertyValue() {
   if ( BLEMini.available() >= 1) {
     byte propertyIdentifier = BLEMini.read();
-    syncProperty(REQUEST_GET_PROPERTY_VALUE, propertyIdentifier);
+    
+    if ( propertyIdentifier < NUM_PROPERTIES) {
+      BLEMini.write(REQUEST_GET_PROPERTY_VALUE);
+      BLEMini.write(propertyIdentifier);
+      BLEMini.write(properties[propertyIdentifier].value);
+      BLEMini.write(properties[propertyIdentifier].value >> 8);
+    }
+    else {
+      Serial.print("property identifier not in bounds: ");
+      Serial.println(propertyIdentifier);
+      clearBLEBuffer();
+    }
   }
   else {
     clearBLEBuffer();
@@ -172,13 +183,6 @@ void writeProperty() {
   else {
     clearBLEBuffer();
   }
-}
-
-void syncProperty(byte commandIdentifier, byte propertyIdentifier) {
-  BLEMini.write(commandIdentifier);
-  BLEMini.write(propertyIdentifier);
-  BLEMini.write(properties[propertyIdentifier].value);
-  BLEMini.write(properties[propertyIdentifier].value >> 8);
 }
 
 void getSensorValue() {
@@ -336,8 +340,6 @@ void constructBLEProperties() {
   properties[PROPERTY_SENSOR_TORQUE_APPLIED_STATE].eepromSave = false;
   properties[PROPERTY_SENSOR_MOTOR_TEMP_STATE].eepromSave = false;
   properties[PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE].eepromSave = false;
-  properties[PROPERTY_SENSOR_POWER_OUTPUT_STATE].eepromSave = false;
-  properties[PROPERTY_SENSOR_STROKE_LENGTH_STATE].eepromSave = false;
   properties[PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE].eepromSave = false;
   properties[PROPERTY_SENSOR_CURRENT_STRAIN_STATE].eepromSave = false;
   properties[PROPERTY_TORQUE_MULTIPLIER].eepromSave = false;

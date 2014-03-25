@@ -130,7 +130,11 @@ void writeGetProperty() {
     
     if ( properties[propertyIdentifier].value == value ) {
       BLEMini.write(REQUEST_WRITE_GET_PROPERTY);
-      BLEMini.write(propertyIdentifier);
+      BLEMini.write(1);
+    }
+    else {
+      BLEMini.write(REQUEST_WRITE_GET_PROPERTY);
+      BLEMini.write((byte)0);
     }
   }
   else {

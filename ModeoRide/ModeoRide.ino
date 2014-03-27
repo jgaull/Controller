@@ -80,6 +80,7 @@ boolean lastButtonState = false;
 
 AltSoftSerial BLEMini;
 //#define BLEMini Serial
+byte lastAvailable = 0;
 
 
 //  setup() is called at startup

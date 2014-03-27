@@ -20,10 +20,13 @@ void performBluetoothSend() {
 }
 
 void performBluetoothReceive() {
-  if ( BLEMini.available() ) {
+  
+  byte currentlyAvailable = BLEMini.available();
+  
+  if ( currentlyAvailable > 0 && currentlyAvailable == lastAvailable ) {
     
     //Serial.print("available: ");
-    //Serial.println(BLEMini.available());
+    //Serial.println(currentlyAvailable);
     
     byte identifier = BLEMini.read();
     byte messageIdentifier;
@@ -80,10 +83,13 @@ void performBluetoothReceive() {
       default:
         Serial.print("Uknown command: ");
         Serial.println(identifier);
-        clearBLEBuffer();
     }
     
     clearBLEBuffer();
+    lastAvailable = 0;
+  }
+  else {
+    lastAvailable = currentlyAvailable;
   }
 }
 
@@ -111,8 +117,8 @@ void getPropertyValue() {
       BLEMini.write(properties[propertyIdentifier].value >> 8);
     }
     else {
-      Serial.print("property identifier not in bounds: ");
-      Serial.println(propertyIdentifier);
+      //Serial.print("property identifier not in bounds: ");
+      //Serial.println(propertyIdentifier);
       clearBLEBuffer();
     }
   }
@@ -209,52 +215,66 @@ void getSensorValue() {
 void addBezier() {
   Bezier bezier;
   byte headerSize = 4;
-  byte header[headerSize];
   
-  for (int i = 0; i < headerSize; i++) {
-    header[i] = BLEMini.read();
-  }
+  if ( BLEMini.available() >= headerSize ) {
+    byte header[headerSize];
   
-  bezier.type = header[0];
-  bezier.maxX = header[1];
-  bezier.maxY = header[2];
-  bezier.numPoints = header[3];
-  bezier.cacheIsValid = false;
-  
-  byte bodySize = header[3] * 2;
-  byte body[bodySize];
-  
-  if (BLEMini.available() >= bodySize) {
+    for (int i = 0; i < headerSize; i++) {
+      header[i] = BLEMini.read();
+    }
     
-    for (byte i = 0; i < bodySize; i += 2) {
-      byte pointX = BLEMini.read();
-      byte pointY = BLEMini.read();
+    bezier.type = header[0];
+    bezier.maxX = header[1];
+    bezier.maxY = header[2];
+    bezier.numPoints = header[3];
+    bezier.cacheIsValid = false;
+    
+    byte bodySize = header[3] * 2;
+    byte body[bodySize];
+    
+    if (BLEMini.available() >= bodySize) {
       
-      body[i] = pointX;
-      body[i + 1] = pointY;
+      for (byte i = 0; i < bodySize; i += 2) {
+        byte pointX = BLEMini.read();
+        byte pointY = BLEMini.read();
+        
+        body[i] = pointX;
+        body[i + 1] = pointY;
+        
+        bezier.points[i / 2].x = pointX;
+        bezier.points[i / 2].y = pointY;
+      }
       
-      bezier.points[i / 2].x = pointX;
-      bezier.points[i / 2].y = pointY;
+      bezierPendingSave = bezier;
+      
+      byte messageData[headerSize + bodySize];
+      for (byte i = 0; i < headerSize; i++) {
+        messageData[i] = header[i];
+      }
+      
+      for (byte i = 0; i < bodySize; i++) {
+        messageData[i + headerSize] = body[i];
+      }
+      
+      BLEMini.write(REQUEST_ADD_BEZIER);
+      for (byte i = 0; i < headerSize + bodySize; i++) {
+        BLEMini.write(messageData[i]);
+      }
     }
-    
-    bezierPendingSave = bezier;
-    
-    byte messageData[headerSize + bodySize];
-    for (byte i = 0; i < headerSize; i++) {
-      messageData[i] = header[i];
-    }
-    
-    for (byte i = 0; i < bodySize; i++) {
-      messageData[i + headerSize] = body[i];
-    }
-    
-    BLEMini.write(REQUEST_ADD_BEZIER);
-    for (byte i = 0; i < headerSize + bodySize; i++) {
-      delay(1);
-      BLEMini.write(messageData[i]);
+    else {
+      /*
+      Serial.print("Needs ");
+      Serial.print(bezier.numPoints * 2);
+      Serial.print(" bytes for body. Has ");
+      Serial.print(BLEMini.available());
+      Serial.println(" bytes.");
+      //*/
+      clearBLEBuffer();
     }
   }
   else {
+    //Serial.print("not enough bytes for header: ");
+    //Serial.println(BLEMini.available());
     clearBLEBuffer();
   }
 }
@@ -281,8 +301,8 @@ void writeBezier() {
           regen = bezierPendingSave;
           break;
           
-        default:
-          Serial.println("Unrecognized Curve Identifier");
+        //default:
+          //Serial.println("Unrecognized Curve Identifier");
       }
       
       success = true;
@@ -291,7 +311,7 @@ void writeBezier() {
       BLEMini.write(success);
     }
     else {
-      Serial.println("bezier type did not match. flail.");
+      //Serial.println("bezier type did not match. flail.");
     }
   }
   else {

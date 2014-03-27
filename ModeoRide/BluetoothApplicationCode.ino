@@ -250,6 +250,7 @@ void addBezier() {
     
     BLEMini.write(REQUEST_ADD_BEZIER);
     for (byte i = 0; i < headerSize + bodySize; i++) {
+      delay(1);
       BLEMini.write(messageData[i]);
     }
   }
@@ -270,17 +271,14 @@ void writeBezier() {
         
         case CURVE_TYPE_ASSIST:
           assist = bezierPendingSave;
-          Serial.println("assist");
           break;
           
         case CURVE_TYPE_DAMPING:
           damping = bezierPendingSave;
-          Serial.println("damping");
           break;
           
         case CURVE_TYPE_REGEN:
           regen = bezierPendingSave;
-          Serial.println("regen");
           break;
           
         default:

@@ -2,14 +2,16 @@ void retrieveCalibrations(){
   
   //Serial.println("Started property restore");
  
-  byte propertyCount = 0;
   for (byte i = 0; i < NUM_PROPERTIES; i++) {
   
     if (properties[i].eepromSave) {
       int lsb = i * 2 + 1;
       int msb = i * 2;
       properties[i].value = (EEPROM.read(msb) << 8) + EEPROM.read(lsb);
-      propertyCount++;
+      
+      if (i == PROPERTY_NUM_PROPERTIES) {
+        properties[i].value = NUM_PROPERTIES;
+      }
     }
   }
   
@@ -41,7 +43,7 @@ void storeCalibrations() {
   Serial.print("Saved ");
   Serial.print(propertyCount);
   Serial.println(" properties.");
-  */
+  //*/
 }
 
 

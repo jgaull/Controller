@@ -96,7 +96,7 @@ void performBluetoothReceive() {
 void performConnect() {
   stopSensorUpdates();
   BLEMini.write((byte)REQUEST_CONNECT);
-  BLEMini.write(NUM_PROPERTIES);
+  BLEMini.write(1);
 }
 
 void performDisconnect() {

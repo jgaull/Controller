@@ -26,8 +26,9 @@
 #define PROPERTY_RIDER_EFFORT_FILTER_STRENGTH 12
 #define PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE 13
 #define PROPERTY_FANCY_ASSIST_STATE 14
+#define PROPERTY_NUM_PROPERTIES 15
 
-#define NUM_PROPERTIES 15 //Is there a better way to do this?
+#define NUM_PROPERTIES 16 //Is there a better way to do this?
 
 //Request Identifiers
 #define REQUEST_CONNECT 10

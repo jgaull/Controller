@@ -239,6 +239,11 @@ void handleStrainMessageLight(byte newStrain) {
   Serial.print(filteredRiderEffort);
   Serial.print(",");
   Serial.print(strainDampingMultiplier);
+  Serial.print(torque);
+  Serial.print(",");
+  Serial.print(newStrain);
+  Serial.print(",");
+  Serial.print(strainDelta);
   Serial.println("");
   //*/
 }

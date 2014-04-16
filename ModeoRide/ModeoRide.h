@@ -4,6 +4,13 @@
 #define ON_OFF_SWITCH_PIN 5
 #define INDICATOR_LED_PIN 6
 #define BLE_POWER_PIN 7
+<<<<<<< HEAD
+=======
+
+//	State definitions
+#define TRQ_ASSIST_OFF 0
+#define TRQ_ASSIST_ON 1
+>>>>>>> master
 
 //Vehicle State
 #define VEHICLE_OFF 0

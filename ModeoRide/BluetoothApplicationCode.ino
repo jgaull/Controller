@@ -20,10 +20,14 @@ void performBluetoothSend() {
 }
 
 void performBluetoothReceive() {
-  
   byte currentlyAvailable = BLEMini.available();
   
   if ( currentlyAvailable > 0 && currentlyAvailable == lastAvailable ) {
+    byte identifier = BLEMini.read();
+    byte data1 = BLEMini.read();
+    byte data2 = BLEMini.read();
+    
+    uint16_t value = (data2 << 8) + data1;
     
     //Serial.print("available: ");
     //Serial.println(currentlyAvailable);
@@ -90,6 +94,12 @@ void performBluetoothReceive() {
   }
   else {
     lastAvailable = currentlyAvailable;
+  }
+}
+
+void clearBLEBuffer() {
+  while (BLEMini.available() > 0) {
+    BLEMini.read();
   }
 }
 

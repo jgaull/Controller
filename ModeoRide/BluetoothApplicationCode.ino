@@ -24,16 +24,6 @@ void performBluetoothReceive() {
   
   if ( currentlyAvailable > 0 && currentlyAvailable == lastAvailable ) {
     byte identifier = BLEMini.read();
-    byte data1 = BLEMini.read();
-    byte data2 = BLEMini.read();
-    
-    uint16_t value = (data2 << 8) + data1;
-    
-    //Serial.print("available: ");
-    //Serial.println(currentlyAvailable);
-    
-    byte identifier = BLEMini.read();
-    byte messageIdentifier;
     
     //Serial.print("identifier: ");
     //Serial.println(identifier);
@@ -97,12 +87,6 @@ void performBluetoothReceive() {
   }
 }
 
-void clearBLEBuffer() {
-  while (BLEMini.available() > 0) {
-    BLEMini.read();
-  }
-}
-
 void performConnect() {
   stopSensorUpdates();
   BLEMini.write((byte)REQUEST_CONNECT);
@@ -117,10 +101,16 @@ void performDisconnect() {
 }
 
 void getPropertyValue() {
+  Serial.print("available = ");
+  Serial.println(BLEMini.available());
   if ( BLEMini.available() >= 1) {
     byte propertyIdentifier = BLEMini.read();
     
+    Serial.print("propertyIdentifier = ");
+    Serial.println(propertyIdentifier);
+    
     if ( propertyIdentifier < NUM_PROPERTIES) {
+      Serial.println("BOOM!");
       BLEMini.write(REQUEST_GET_PROPERTY_VALUE);
       BLEMini.write(propertyIdentifier);
       BLEMini.write(properties[propertyIdentifier].value);
@@ -129,10 +119,12 @@ void getPropertyValue() {
     else {
       //Serial.print("property identifier not in bounds: ");
       //Serial.println(propertyIdentifier);
+      Serial.println("clear buffer 1");
       clearBLEBuffer();
     }
   }
   else {
+    Serial.println("clear buffer 2");
     clearBLEBuffer();
   }
 }

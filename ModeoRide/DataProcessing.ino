@@ -29,8 +29,8 @@ void manageDataProcessing() {
     uint16_t mappedSpeed = map(rxData[DAT_MTR_SPD], 0, 64, 0, UINT16_MAX);
     
     if (sensors[SENSOR_SPEED].value != mappedSpeed) {
-      recalculateBezierStrainDampingMultiplier();
-      buildPowerOutputCurve();
+      mapSpeedToDamping(rxData[DAT_MTR_SPD]);
+      //buildPowerOutputCurve();
       
       sensors[SENSOR_SPEED].value = mappedSpeed;
       sensors[SENSOR_SPEED].isFresh = true;
@@ -41,94 +41,36 @@ void manageDataProcessing() {
  
 }
 
-/*void meadowsFilterAndTorque(byte newRiderTrq) {
-  if (meadowsStrainBuffer < 10) {
-    meadowsStrainBuffer = (meadowsStrainBuffer+ newRiderTrq) / 2;
-  }
-  else {
-    meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
-    meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
-  }
+//Bezier intersection functions
+byte mapEffortToPower(float effort) {
   
-  byte torque = map(meadowsStrainBuffer, 0, 40, 0, 64 );
-  torque = constrain(torque, 0,64);
-
-  Temp_Var_For_Fwd_Twrk_Msg = torque;
-  
-  Serial.print(meadowsStrainBuffer);
-  Serial.print(",");
-  Serial.print(torque);
-  Serial.print(",");
-  Serial.print(rxData[DAT_MTR_TRQ]);
-  Serial.print(",");
-  Serial.print(rxData[DAT_RID_TRQ]);
-  Serial.print(",");
-  Serial.print(rxData[DAT_MTR_SPD]);
-  Serial.print(",");
-  Serial.print(micros());
-  Serial.println("");
-}
-
-
-
-
-void meadowsFilterAndTorqueAdvanced(byte newRiderTrq) {
-  if (meadowsStrainBuffer < 10) {
-    meadowsStrainBuffer = (meadowsStrainBuffer+ newRiderTrq) / 2;
-  }
-  else {
-    meadowsStrainBuffer = ((meadowsStrainBuffer*2)+newRiderTrq)/3;
-  }
-  
-  unsigned long now = micros();
- 
-  byte torque = map(meadowsStrainBuffer, 0, 40, 0, 64 );
-  
-  torque = constrain(torque, 0,64);
-  Temp_Var_For_Fwd_Twrk_Msg = torque;
-  
-  if ((now >= TrqTimestamp + TRQ_UPDATE_DELTA) || ((now < TrqTimestamp) && ((4294967295 - (TrqTimestamp + now)) >= TRQ_UPDATE_DELTA))) {
-    TrqTimestamp = now;
-  }
-  
-  Serial.print(meadowsStrainBuffer);
-  Serial.print(",");
-  Serial.print(torque);
-  Serial.print(",");
-  Serial.print(rxData[DAT_MTR_TRQ]);
-  Serial.print(",");
-  Serial.print(rxData[DAT_RID_TRQ]);
-  Serial.print(",");
-  Serial.print(rxData[DAT_MTR_SPD]);
-  Serial.print(",");
-  Serial.print(micros());
-  Serial.println("");
-}*/
-
-short calculatePowerOutput(float effort) {
-  
-  byte mappedEffort = constrain(effort, 0, properties[PROPERTY_MAX_EFFORT].value);
-  mappedEffort = map(mappedEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 255);
+  byte mappedEffort = constrain(effort, 0, assist.maxX);
+  mappedEffort = map(mappedEffort, 0, assist.maxX, 0, 255);
   
   point effort1 = { mappedEffort, 0 };
   point effort2 = { mappedEffort, 255 };
   
   short powerOutput = 0;
   
+  if ( !assist.cacheIsValid ) {
+    rebuildBezierCache(assist);
+  }
+  
   for (int i = 0; i < RESOLUTION - 1; i++)
   {
-    point curveSegment1 = powerOutputCurve[i];
-    point curveSegment2 = powerOutputCurve[i + 1];
+    point curveSegment1 = assist.cache[i];
+    point curveSegment2 = assist.cache[i + 1];
     
     point result;
     
     if (i == 0 && curveSegment1.x == effort1.x) {
-      powerOutput = curveSegment1.y - 127;
+      powerOutput = curveSegment1.y;
       return powerOutput;
     }
     
     if (intersectionOfLineFrom(curveSegment1, curveSegment2, effort1, effort2, result)) {
-      powerOutput = result.y - 127;
+      powerOutput = result.y;
+      powerOutput = map(powerOutput, 0, 255, 0, assist.maxY);
       return powerOutput;
     }
   }
@@ -136,248 +78,65 @@ short calculatePowerOutput(float effort) {
   return 0;
 }
 
-void recalculateBezierStrainDampingMultiplier() {
-  
-  unsigned long timestamp = micros();
+float mapSpeedToDamping(byte motorSpeed) {
   
   float maxMultiplier = 1;
-  byte motorSpeed = constrain(rxData[DAT_MTR_SPD], 0, properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value);
-  byte mappedSpeed = map(motorSpeed, 0, properties[PROPERTY_MAX_STRAIN_DAMPING_SPEED].value, 0, 255);
+  motorSpeed = constrain(motorSpeed, 0, damping.maxX);
+  byte mappedSpeed = map(motorSpeed, 0, damping.maxX, 0, 255);
   
   point speed1 = { mappedSpeed, 0 };
   point speed2 = { mappedSpeed, 255 };
   
+  if ( !damping.cacheIsValid ) {
+    rebuildBezierCache(damping);
+  }
+  
   for (int i = 0; i < RESOLUTION - 1; i++)
   {
-    point curveSegment1 = strainDampingCurve[i];
-    point curveSegment2 = strainDampingCurve[i + 1];
+    point curveSegment1 = damping.cache[i];
+    point curveSegment2 = damping.cache[i + 1];
     
     point result;
     
     if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
-      strainDampingMultiplier = (float)result.y / 255.0f;
-      break;
+      strainDampingMultiplier = (float)result.y / (float)BYTE_MAX;
+      return strainDampingMultiplier;
     }
   }
 }
 
-void buildPowerOutputCurve() {
-  //unsigned long timestamp = micros();
-  //Serial.println("power output");
-  
-  float maxMultiplier = 1;
-  uint16_t maxSpeed = 30;
-  byte motorSpeed = constrain(rxData[DAT_MTR_SPD], 0, maxSpeed);
-  motorSpeed = map(motorSpeed, 0, maxSpeed, 0, 255);
-  
-  point speed1 = { motorSpeed, 0 };
-  point speed2 = { motorSpeed, 255 };
-  
-  point assist;
-  point regen;
-  point sensitivity1;
-  point sensitivity2;
-  
+//Bezier helpers
+void rebuildBezierCache(Bezier &rebuildBezier) {
   /*
-  point assistCurve[RESOLUTION];
-  point sensitivityCurve[RESOLUTION];
-  point regenCurve[RESOLUTION];
-  point powerOutputCurve[RESOLUTION];
+  Serial.print("rebuild bezier: ");
+  Serial.println(rebuildBezier.type);
+  
+  Serial.print("maxX: ");
+  Serial.println(rebuildBezier.maxX);
+  Serial.print("maxY: ");
+  Serial.println(rebuildBezier.maxY);
   */
   
-  for (int i = 0; i < RESOLUTION - 1; i++)
-  {
-    point curveSegment1 = assistCurve[i];
-    point curveSegment2 = assistCurve[i + 1];
-    
-    point result;
-    if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
-      assist.x = 255;
-      assist.y = map(result.y, 0, 255, 127, 255);
-      break;
-    }
-  }
-  
-  for (int i = 0; i < RESOLUTION - 1; i++)
-  {
-    point curveSegment1 = regenCurve[i];
-    point curveSegment2 = regenCurve[i + 1];
-    
-    point result;
-    if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
-      regen.x = 0;
-      regen.y = map(result.y, 0, 255, 127, 0);
-      break;
-    }
-  }
-  
-  for (int i = 0; i < RESOLUTION - 1; i++)
-  {
-    point curveSegment1 = sensitivityCurve[i];
-    point curveSegment2 = sensitivityCurve[i + 1];
-    
-    point result;
-    
-    if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
-      result.x = constrain(result.x, 1, 254);
-      sensitivity1.x = result.x;
-      sensitivity1.y = regen.y;
-      
-      sensitivity2.x = result.x;
-      sensitivity2.y = assist.y;
-      break;
-    }
-  }
-  
-  point startPoint = regen;
-  point endPoint = assist;
-  
-  point control1 = sensitivity1;
-  point control2 = sensitivity2;
+  point startPoint = rebuildBezier.points[0];
+  point control1 = rebuildBezier.points[1];
+  point control2 = rebuildBezier.points[2];
+  point endPoint = rebuildBezier.points[3];
   
   for (int i=0; i < RESOLUTION; ++i) {
     point p;
     float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
     bezier(p, startPoint, control1, control2, endPoint, t);
-    powerOutputCurve[i].x = p.x;
-    powerOutputCurve[i].y = p.y;
-  }
-}
-
-void buildDampingCurve() {
-  point startPoint = { 0, 0 };
-  point endPoint = { 255, 255 };
-  
-  byte firstPropertyIdentifier = PROPERTY_STRAIN_DAMPING_CONTROL1_X;
-  
-  point control1;
-  control1.x = map(properties[firstPropertyIdentifier + 0].value, 0, UINT16_MAX, 0, 255);
-  control1.y = map(properties[firstPropertyIdentifier + 1].value, 0, UINT16_MAX, 0, 255);
-  
-  point control2;
-  control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
-  control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
-  
-  for (int i=0; i < RESOLUTION; ++i) {
-    point p;
-    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
-    bezier(p, startPoint, control1, control2, endPoint, t);
-    strainDampingCurve[i].x = p.x;
-    strainDampingCurve[i].y = p.y;
-  }
-}
-
-void buildAssistCurve() {
-  //Serial.println("Assist");
-  point startPoint = { 0, 255 };
-  point endPoint = { 255, 0 };
-  
-  byte firstPropertyIdentifier = PROPERTY_ASSIST_1_X;
-  
-  point control1;
-  control1.x = map(properties[firstPropertyIdentifier + 0].value, 0, UINT16_MAX, 0, 255);
-  control1.y = map(properties[firstPropertyIdentifier + 1].value, 0, UINT16_MAX, 0, 255);
-  
-  point control2;
-  control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
-  control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
-  
-  for (int i=0; i < RESOLUTION; ++i) {
-    point p;
-    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
-    bezier(p, startPoint, control1, control2, endPoint, t);
-    assistCurve[i].x = p.x;
-    assistCurve[i].y = p.y;
+    rebuildBezier.cache[i].x = p.x;
+    rebuildBezier.cache[i].y = p.y;
     /*
     Serial.print(p.x);
     Serial.print(",");
     Serial.println(p.y);
-    */
+    //*/
   }
+  
+  rebuildBezier.cacheIsValid = true;
 }
-
-void buildRegenCurve() {
-  //Serial.println("Regen");
-  point startPoint = { 0, 0 };
-  point endPoint = { 255, 255 };
-  
-  byte firstPropertyIdentifier = PROPERTY_REGEN_1_X;
-  
-  point control1;
-  control1.x = map(properties[firstPropertyIdentifier + 0].value, 0, UINT16_MAX, 0, 255);
-  control1.y = map(properties[firstPropertyIdentifier + 1].value, 0, UINT16_MAX, 0, 255);
-  
-  point control2;
-  control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
-  control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
-  
-  for (int i=0; i < RESOLUTION; ++i) {
-    point p;
-    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
-    bezier(p, startPoint, control1, control2, endPoint, t);
-    regenCurve[i].x = p.x;
-    regenCurve[i].y = p.y;
-    
-    /*
-    Serial.print(p.x);
-    Serial.print(",");
-    Serial.println(p.y);
-    */
-  }
-}
-
-void buildSensitivityCurve() {
-  //Serial.println("Sensitivity");
-  point startPoint = { 0, 255 };
-  point endPoint = { 255, 0 };
-  
-  byte firstPropertyIdentifier = PROPERTY_SENSITIVITY_1_X;
-  
-  point control1;
-  control1.x = map(properties[firstPropertyIdentifier + 0].value, 0, UINT16_MAX, 0, 255);
-  control1.y = map(properties[firstPropertyIdentifier + 1].value, 0, UINT16_MAX, 0, 255);
-  
-  point control2;
-  control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
-  control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
-  
-  for (int i=0; i < RESOLUTION; ++i) {
-    point p;
-    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
-    bezier(p, startPoint, control1, control2, endPoint, t);
-    sensitivityCurve[i].x = p.x;
-    sensitivityCurve[i].y = p.y;
-    /*
-    Serial.print(p.x);
-    Serial.print(",");
-    Serial.println(p.y);
-    */
-  }
-}
-
-/*void buildBezierCurve(byte firstPropertyIdentifier, point startPoint, point endPoint, point &curve) {
-  
-  Serial.println(firstPropertyIdentifier);
-  
-  point control1;
-  control1.x = map(properties[firstPropertyIdentifier + 0].value, 0, UINT16_MAX, 0, 255);
-  control1.y = map(properties[firstPropertyIdentifier + 1].value, 0, UINT16_MAX, 0, 255);
-  
-  point control2;
-  control2.x = map(properties[firstPropertyIdentifier + 2].value, 0, UINT16_MAX, 0, 255);
-  control2.y = map(properties[firstPropertyIdentifier + 3].value, 0, UINT16_MAX, 0, 255);
-  
-  for (int i=0; i < RESOLUTION; ++i) {
-    point p;
-    float t = static_cast<float>(i)/(RESOLUTION - 1.0f);
-    bezier(p, startPoint, control1, control2, endPoint, t);
-    curve[i].x = p.x;
-    curve[i].y = p.y;
-    Serial.print(p.x);
-    Serial.print(",");
-    Serial.print(p.y);
-  }
-}*/
 
 // simple linear interpolation between two points
 void lerp(point &dest, const point &a, const point &b, const float t) {
@@ -420,6 +179,7 @@ boolean intersectionOfLineFrom(point &p1, point &p2, point &p3, point &p4, point
   return true;
 }
 
+//The core data processing
 void handleStrainMessageLight(byte newStrain) {
   
   byte strainDelta = round(newStrain * strainDampingMultiplier);
@@ -435,7 +195,7 @@ void handleStrainMessageLight(byte newStrain) {
     cyclesSinceLastStroke = 0;
   }
   else {
-    cyclesSinceLastStroke = min(cyclesSinceLastStroke + 1, 255);
+    cyclesSinceLastStroke = min(cyclesSinceLastStroke + 1, 254);
   }
   
   if (cyclesSinceLastStroke > properties[PROPERTY_STROKE_TIMEOUT_CYCLES].value) {
@@ -444,23 +204,18 @@ void handleStrainMessageLight(byte newStrain) {
   }
   
   byte torque;
-  short powerOutputSensorValue;
-  if (!properties[PROPERTY_FANCY_ASSIST_STATE].value) {
-    byte torque = map(filteredRiderEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
+  
+  if (properties[PROPERTY_FANCY_ASSIST_STATE].value == STANDARD_ASSIST) {
+    torque = map(filteredRiderEffort, 0, properties[PROPERTY_MAX_EFFORT].value, 0, 64);
   }
-  else {
-    short powerOutput = calculatePowerOutput(filteredRiderEffort);
-    powerOutput = map(powerOutput, -127, 128, -63, 64);
-    powerOutputSensorValue = powerOutput;
-    torque = constrain(powerOutput, 0, 64); //this will have to change when regen is implemented.
+  else if (properties[PROPERTY_FANCY_ASSIST_STATE].value == EFFORT_MAPPING) {
+    byte effortMappedToPower = mapEffortToPower(filteredRiderEffort);
+    torque = map(effortMappedToPower, 0, BYTE_MAX, 0, 64);
   }
   
   float torqueMultiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
   torque = constrain(round(torque * torqueMultiplier), 0, 64);
   Temp_Var_For_Fwd_Twrk_Msg = torque;
-  
-  sensors[SENSOR_POWER_OUTPUT].value = map(powerOutputSensorValue, -127, 128, 0, UINT16_MAX);
-  sensors[SENSOR_POWER_OUTPUT].isFresh = true;
   
   float riderEffortSensorValue = constrain(riderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
   riderEffortSensorValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
@@ -486,6 +241,9 @@ void handleStrainMessageLight(byte newStrain) {
   Serial.print(",");
   Serial.print(filteredRiderEffort);
   Serial.print(",");
+  Serial.print(strainDampingMultiplier);
+  Serial.print(torque);
+  Serial.print(",");
   Serial.print(newStrain);
   Serial.print(",");
   Serial.print(strainDelta);
@@ -493,242 +251,7 @@ void handleStrainMessageLight(byte newStrain) {
   //*/
 }
 
-void addNewStroke(PedalStroke stroke) {
-  byte newLength = min(strokesLength + 1, MAX_STORED_STROKES);
-  
-  for (int i = strokesLength - 1; i >= 0; i--) {
-    if (i + 1 < newLength) {
-      strokes[i + 1] = strokes[i];
-    }
-  }
-  
-  strokes[0] = stroke;
-  strokesLength = newLength;
-}
-
-/*PedalStroke copyStroke(PedalStroke stroke) {
-  PedalStroke copy;
-  copy.length = stroke.length;
-  copy.index = stroke.index;
-  copy.runs = stroke.runs;
-  
-  for (byte i = 0; i < stroke.length; i++) {
-    copy.data[i] = stroke.data[i];
-  }
-  
-  return copy;
-}*/
-
-void handleStrainMessage(byte newStrain) {
-  //strain values come in as positive deltas
-  byte strainDelta = newStrain;
-  
-  //If there was no change in strain
-  if ((strainDelta == 0 && currentStrain > 0) || (currentPedalStrokeLength >= MAX_STROKE_LENGTH && strainDelta == 0)) {
-    
-    //Reset any strokes that have finished playing back. It's time for a new stroke.
-    for (byte i = 0; i < strokesLength; i++) {
-      if (strokes[i].index == strokes[i].length) {
-        strokes[i].index = 0;
-        strokes[i].runs++;
-        
-        if (strokes[i].runs >= NUM_AVERAGED_STROKES) {
-          removeStrokeAtIndex(i);
-          i--;
-        }
-      }
-    }
-    
-    //Create a new stroke
-    PedalStroke completedStroke;
-    
-    byte startIndex = 0;
-    if (currentPedalStrokeLength >= MAX_STROKE_LENGTH) {
-      startIndex = (currentPedalStrokeLength - MAX_STROKE_LENGTH) % MAX_STROKE_LENGTH;
-    }
-    
-    byte length = min(currentPedalStrokeLength, MAX_STROKE_LENGTH);
-    
-    for (byte i = 0; i < length; i++) {
-      completedStroke.data[i] = currentPedalStroke[(i + startIndex) % MAX_STROKE_LENGTH];
-    }
-    
-    sensors[SENSOR_STROKE_LENGTH].value = map(currentPedalStrokeLength, 0, MAX_STROKE_LENGTH, 0, UINT16_MAX);
-    sensors[SENSOR_STROKE_LENGTH].isFresh = true;
-    
-    completedStroke.length = min(currentPedalStrokeLength, MAX_STROKE_LENGTH);
-    completedStroke.index = 0;
-    completedStroke.runs = 0;
-    completedStroke.strokeId = strokeId;
-    addNewStroke(completedStroke);
-    
-    strokeId++;
-    
-    //Reset our stroke variables
-    currentStrain = 0;
-    currentPedalStrokeLength = 0;
-  }
-  
-  //We just got our first value of the new stroke
-  if (strainDelta > 0 && currentStrain == 0) {
-    for (byte i = 0; i < strokesLength; i++) {
-      //If there are any strokes still playing out from before, we reset them to the current index.
-      if (strokes[i].index > currentPedalStrokeLength && strokes[i].index != strokes[i].length) {
-        strokes[i].index = currentPedalStrokeLength;
-        strokes[i].runs++;
-        
-        //If the stroke is played out then remove it.
-        if (strokes[i].runs >= NUM_AVERAGED_STROKES) {
-          removeStrokeAtIndex(i);
-          i--;
-        }
-      }
-    }
-  }
-  
-  //since they are deltas we add them all together.
-  currentStrain += strainDelta;
-  
-  if (currentStrain > 0) {
-    cyclesSinceLastStroke = 0;
-  }
-  else {
-    cyclesSinceLastStroke = min(cyclesSinceLastStroke + 1, 255);
-  }
-  
-  int expectedStrain = 0;
-  for (byte i = 0; i < strokesLength; i++) {
-    
-    byte index = strokes[i].index;
-    
-    if (index < strokes[i].length) {
-      
-      /*
-      for (byte j = 0; j <= index; j++) {
-        expectedStrain += strokes[i].data[j];
-      }
-      */
-      expectedStrain += strokes[i].data[index];
-      strokes[i].index++;
-    }
-    else if (index > currentPedalStrokeLength) {
-      strokes[i].index = currentPedalStrokeLength;
-      strokes[i].runs++;
-      
-      if (strokes[i].runs >= NUM_AVERAGED_STROKES) {
-        removeStrokeAtIndex(i);
-        i--;
-      }
-    }
-    
-    /*
-    Serial.print(strokes[i].strokeId);
-    Serial.print(",");
-    
-    if (index < strokes[i].length) {
-      Serial.print(strokes[i].data[index]);
-    }
-    else {
-      Serial.print(0);
-    }
-    
-    Serial.print(",");
-    Serial.print(strokes[i].length);
-    Serial.print(",");
-    Serial.print(index);
-    Serial.print(",");
-    Serial.print(strokes[i].runs);
-    Serial.print(",");
-    //*/
-  }
-  
-  //Serial.println();
-  
-  if (expectedStrain > 0) {
-    expectedStrain /= strokesLength;
-  }
-  
-  currentPedalStroke[currentPedalStrokeLength % MAX_STROKE_LENGTH] = strainDelta;
-  currentPedalStrokeLength++;
-  
-  float strainDiff = strainDelta - expectedStrain;
-  strainDiff = abs(strainDiff);
-  
-  float filterAmount = constrain(strainDiff, 0, properties[PROPERTY_MAX_OUTPUT].value);
-  filterAmount = map(properties[PROPERTY_MAX_OUTPUT].value - strainDiff, 0, properties[PROPERTY_MAX_OUTPUT].value, properties[PROPERTY_SMOOTHING_MIN].value, properties[PROPERTY_SMOOTHING_MAX].value);
-  filterAmount /= (float)UINT16_MAX; //because map only works with round numbers.
-  
-  byte filterMultiplier = 1;
-  if (cyclesSinceLastStroke > properties[PROPERTY_STROKE_TIMEOUT_CYCLES].value) {
-    filterMultiplier = 0;
-  }
-  
-  float dampenedStrain = currentStrain * strainDampingMultiplier;
-  riderEffort = smooth(dampenedStrain, riderEffort, filterAmount * filterMultiplier);
-  
-  float secondaryFilterAmount = (float)properties[PROPERTY_RIDER_EFFORT_FILTER_STRENGTH].value / (float)UINT16_MAX;
-  filteredRiderEffort = smooth(riderEffort, filteredRiderEffort, secondaryFilterAmount * filterMultiplier);
-  
-  float multiplier = ((float)properties[PROPERTY_TORQUE_MULTIPLIER].value / (float)UINT16_MAX) * 2;
-  //float multipliedEffort = multiplier * riderEffort;
-  //multipliedEffort = round(constrain(multipliedEffort, 0, properties[PROPERTY_MAX_EFFORT].value));
-  
-  short powerOutput = calculatePowerOutput(filteredRiderEffort);
-  powerOutput = map(powerOutput, -127, 128, -63, 64);
-  short powerOutputSensorValue = powerOutput;
-  powerOutput *= multiplier;
-  byte torque = constrain(powerOutput, 0, 64);
-  
-  //A bunch of shit for sensor managers.
-  sensors[SENSOR_POWER_OUTPUT].value = map(powerOutputSensorValue, -127, 128, 0, UINT16_MAX);
-  sensors[SENSOR_POWER_OUTPUT].isFresh = true;
-  
-  float riderEffortSensorValue = constrain(riderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
-  riderEffortSensorValue = map(riderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
-  sensors[SENSOR_RIDER_EFFORT].value = riderEffortSensorValue;
-  sensors[SENSOR_RIDER_EFFORT].isFresh = true;
-  
-  float filteredRiderEffortSensorValue = constrain(filteredRiderEffort, 0, properties[PROPERTY_MAX_EFFORT].value);
-  filteredRiderEffortSensorValue = map(filteredRiderEffortSensorValue, 0, properties[PROPERTY_MAX_EFFORT].value, 0, UINT16_MAX);
-  sensors[SENSOR_FILTERED_RIDER_EFFORT].value = filteredRiderEffortSensorValue;
-  sensors[SENSOR_FILTERED_RIDER_EFFORT].isFresh = true;
-  
-  float currentStrainSensorValue = constrain(currentStrain, 0, properties[PROPERTY_MAX_OUTPUT].value);
-  currentStrainSensorValue = map(currentStrainSensorValue, 0, properties[PROPERTY_MAX_OUTPUT].value, 0, UINT16_MAX);
-  sensors[SENSOR_CURRENT_STRAIN].value = currentStrainSensorValue;
-  sensors[SENSOR_CURRENT_STRAIN].isFresh = true;
-  
-  unsigned short rawStrainSensorValue = map(strainDelta, 0, 64, 0, UINT16_MAX);
-  sensors[SENSOR_RAW_STRAIN].value = rawStrainSensorValue;
-  sensors[SENSOR_RAW_STRAIN].isFresh = true;
-  
-  unsigned short torqueAppliedSensorValue = map(torque, 0, 64, 0, UINT16_MAX);
-  sensors[SENSOR_TORQUE_APPLIED].value = torqueAppliedSensorValue;
-  sensors[SENSOR_TORQUE_APPLIED].isFresh = true;
-  //end a bunch of shit for sensor managers
-  
-  Temp_Var_For_Fwd_Twrk_Msg = torque;
-  
- // hasTorqueMessage = true;  //  NOW ALTERNATELY HANDLED BY MEDIUM MESSAGE RX TIMER 
-  //for debug.
-  /*
-  Serial.print(riderEffort);
-  Serial.print(",");
-  Serial.print(filteredRiderEffort);
-  Serial.print(",");
-  Serial.print(currentStrain);
-  Serial.print(",");
-  Serial.print(strainDelta);
-  Serial.print(",");
-  Serial.print(expectedStrain);
-  Serial.print(",");
-  Serial.print(filterAmount);
-  Serial.print(",");
-  Serial.print(micros());
-  Serial.println("");
-  //*/
-}
-
+//Simple smoothing function
 float smooth(float newVal, float oldVal, float filterStrength) {
   
   filterStrength = constrain(filterStrength, 0, 1);
@@ -736,16 +259,4 @@ float smooth(float newVal, float oldVal, float filterStrength) {
   oldVal = (newVal * (1 - filterStrength)) + (oldVal  *  filterStrength);
 
   return oldVal;
-}
-
-void removeStrokeAtIndex(byte index) {
-  if (strokesLength > 0 && index < strokesLength && index >= 0) {
-    for (int i = index; i < strokesLength - 1; i++) {
-      if (i + 1 < strokesLength) {
-        strokes[i] = strokes[i + 1];
-      }
-    }
-    
-    strokesLength--;
-  }
 }

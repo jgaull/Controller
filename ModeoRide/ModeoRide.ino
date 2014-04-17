@@ -2,7 +2,7 @@
 /*
 ModeoRide Mk3
 Jon Gaull and Isaac Meadows
-January 2012
+January 2013
 
 Notes:
 Mk1- Ended with basic strain guage filtering, assist application, on/off commands according to switch, non trq messages sent by array
@@ -48,68 +48,39 @@ byte rxBuf[8];
 byte txLen = 0;
 byte txBuf[8];
 
-// Hard  code message length of commands vs queries if needed, and percentage of cycles where TX attempts
-unsigned char CMD_TX_LEN = 4;
-unsigned char QUERY_TX_LEN = 2;
-byte CYCLE_TX_RATE = 200;
-byte CycleTxCnt = 0;
-
-byte CYCLE_DEBUG_RATE = 100;
-byte CycleDebugCnt = 0;
-
-unsigned int CYCLE_BLETX_Counter = 1;
-unsigned int CYCLE_ACTION_COUNTER = 10000; // 0 -65535
-unsigned int CycleActionCnt = 0;
-
-
-// State management variables
-byte trqAssistState = TRQ_ASSIST_OFF;
 byte vehicleState = VEHICLE_OFF;
 
 long unsigned int rxId;
 long unsigned int txId;
 
-
-byte realTorque;
-byte vBatt;
-
-//This needs to change to a PedalStroke
-int currentStrain = 0;
-int currentPedalStroke[MAX_STROKE_LENGTH];
-byte currentPedalStrokeLength = 0;
-
-//Expected Strain Finding
-PedalStroke strokes[MAX_STORED_STROKES];
-byte strokesLength = 0;
-byte strokeId = 0;
 byte cyclesSinceLastStroke = 0;
 
 float riderEffort = 0;
 float filteredRiderEffort = 0;
 
 float strainDampingMultiplier = 0.0f;
-point strainDampingCurve[RESOLUTION];
 
-point assistCurve[RESOLUTION];
-point sensitivityCurve[RESOLUTION];
-point regenCurve[RESOLUTION];
-point powerOutputCurve[RESOLUTION];
+Bezier assist;
+Bezier regen;
+Bezier damping;
 
 boolean trqCmdTxFlag = false;
 
 //*****TrqMgmt Variables
 
-
-byte REAL_SPEED_THRESH = 0x04;
-byte VBATT_THRESH = 0xA0;
-
 Sensor sensors[NUM_SENSORS];
 Property properties[NUM_PROPERTIES];
+
+Property propertyPendingSave;
+byte propertyIdentifierForPropertyPendingSave;
+
+Bezier bezierPendingSave;
 
 boolean lastButtonState = false;
 
 AltSoftSerial BLEMini;
 //#define BLEMini Serial
+byte lastAvailable = 0;
 
 
 //  setup() is called at startup
@@ -136,6 +107,18 @@ void setup()
   
   activateBionx();
   
+  /*
+  Unit test for effort mapping
+  
+  for (byte x = 0; x < properties[PROPERTY_MAX_EFFORT].value; x++) {
+    byte y = mapEffortToPower(x);
+    Serial.print(x);
+    Serial.print(",");
+    Serial.print(y);
+    Serial.println("");
+  }
+  */
+  
   Serial.println("SETUP COMPLETE");
 }
 
@@ -149,7 +132,7 @@ void loop()
   
   performCANRX();
   
-  performBluetoothSend();
+  //performBluetoothSend();
   
   performBluetoothReceive();
   
@@ -161,46 +144,11 @@ void loop()
 
   //performSerialDebugging();
   
-  manageActionCounter();
-  /*
-  Serial.print("freeMemory() = ");
-  Serial.println(freeMemory());
-  */
-}
-
-void performSerialDebugging() {
-  if (CycleActionCnt % CYCLE_DEBUG_RATE == 0) {
-    Serial.print(rxData[DAT_MTR_SPD]);
-    Serial.print(",TrqUpper: ");
-    Serial.print(Temp_Var_For_Fwd_Twrk_Msg);
-    Serial.print(",TrqLower");
-    Serial.print(Temp_Var_For_Fwd_Twrk_Msg);
-    Serial.print(",Effort: ");
-    Serial.print(riderEffort);
-    Serial.print(",Curr Strn:");
-    Serial.print(currentStrain);
-    Serial.print(",PedStrkLen: ");
-    Serial.print(currentPedalStrokeLength);
-    Serial.print(",StrokesLen:");
-    Serial.print(strokesLength);
-    Serial.println(" ");
-
-  }
-}
-
-void manageActionCounter() {
-  if ( CycleActionCnt == CYCLE_ACTION_COUNTER)
-  {
-    CycleActionCnt = 0;
-  }
-  else if (CycleActionCnt > CYCLE_ACTION_COUNTER)
-  {
-    CycleActionCnt = 0;    // This should never happen
-  }
-  else
-  {
-    CycleActionCnt++;
-  }
+  //manageActionCounter();
+  
+  //Serial.print("freeMemory() = ");
+  //Serial.println(freeMemory());
+  
 }
 
 void manageVehicleState(bool switchValue) {

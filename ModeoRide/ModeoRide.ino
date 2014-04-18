@@ -26,6 +26,7 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 #include <AltSoftSerial.h>    			//  Serial comms library for communication with RedBear BLE Mini
 #include <avr/pgmspace.h>
 #include <EEPROM.h>
+#include <ModeoBLE.h>
 // END LIBRARIES
 //#include <ble_mini.h>
 
@@ -81,7 +82,8 @@ boolean lastButtonState = false;
 AltSoftSerial BLEMini;
 //#define BLEMini Serial
 byte lastAvailable = 0;
-
+  
+ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES);
 
 //  setup() is called at startup
 void setup()
@@ -107,19 +109,15 @@ void setup()
   
   activateBionx();
   
-  /*
-  Unit test for effort mapping
-  
-  for (byte x = 0; x < properties[PROPERTY_MAX_EFFORT].value; x++) {
-    byte y = mapEffortToPower(x);
-    Serial.print(x);
-    Serial.print(",");
-    Serial.print(y);
-    Serial.println("");
-  }
-  */
-  
-  Serial.println("SETUP COMPLETE");
+  modeo.saveValueForProperty(NUM_PROPERTIES, PROPERTY_NUM_PROPERTIES);
+  modeo.startup();
+}
+
+void smoothingMinDidChange(unsigned short newValue, unsigned short oldValue) {
+  Serial.print("new value: ");
+  //Serial.print(newValue);
+  Serial.print(", old value: ");
+  //Serial.println(oldValue);
 }
 
 
@@ -134,7 +132,9 @@ void loop()
   
   //performBluetoothSend();
   
-  performBluetoothReceive();
+  //performBluetoothReceive();
+  
+  modeo.update();
   
   performPeriodicMessageSend(now);
   

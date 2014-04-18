@@ -353,6 +353,7 @@ void constructBLESensors() {
 
 void constructBLEProperties() {
   
+  /*
   for (byte i = 0; i < NUM_PROPERTIES; i++) {
     properties[i].value = 0;
     properties[i].eepromSave = true;
@@ -367,6 +368,31 @@ void constructBLEProperties() {
   properties[PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE].eepromSave = false;
   properties[PROPERTY_SENSOR_CURRENT_STRAIN_STATE].eepromSave = false;
   properties[PROPERTY_TORQUE_MULTIPLIER].eepromSave = false;
+  */
+  
+  byte doNotSaveListLength = 9;
+  byte doNotSaveList[9] = { PROPERTY_SENSOR_RIDER_EFFORT_STATE,
+                            PROPERTY_SENSOR_SPEED_STATE,
+                            PROPERTY_SENSOR_RAW_STRAIN_STATE,
+                            PROPERTY_SENSOR_TORQUE_APPLIED_STATE,
+                            PROPERTY_SENSOR_MOTOR_TEMP_STATE,
+                            PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE,
+                            PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE,
+                            PROPERTY_SENSOR_CURRENT_STRAIN_STATE,
+                            PROPERTY_TORQUE_MULTIPLIER };
+  
+  for (byte i = 0; i < NUM_PROPERTIES; i++) {
+    
+    boolean eepromSave = true;
+    for (byte j = 0; j < doNotSaveListLength; j++) {
+      if (doNotSaveList[j] == i) {
+        eepromSave = false;
+        break;
+      }
+    }
+    
+    modeo.registerProperty(i, eepromSave);
+  }
 }
 
 Property copyProperty(byte propertyIdentifier) {

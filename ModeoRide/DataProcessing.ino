@@ -9,22 +9,19 @@ void manageDataProcessing() {
   if (rxDataIsFresh[DAT_MTR_TMP]) {
     
     modeo.setValueForSensor(map(rxData[DAT_MTR_TMP], 0, 64, 0, UINT16_MAX), SENSOR_MOTOR_TEMP);
-    
-    //sensors[SENSOR_MOTOR_TEMP].value = map(rxData[DAT_MTR_TMP], 0, 64, 0, UINT16_MAX);
-    //sensors[SENSOR_MOTOR_TEMP].isFresh = true;
-    
     rxDataIsFresh[DAT_MTR_TMP] = false;
+    
   }
   
   if (rxDataIsFresh[DAT_BAT_VBAT]) {
+    
     unsigned short mappedBatteryVoltage = constrain(rxData[DAT_BAT_VBAT], 170, 217);
     mappedBatteryVoltage = map(mappedBatteryVoltage, 170, 217, 0, UINT16_MAX);
     
     if (mappedBatteryVoltage != modeo.getValueForSensor(SENSOR_BATTERY_VOLTAGE)) {
+      
       modeo.setValueForSensor(mappedBatteryVoltage, SENSOR_BATTERY_VOLTAGE);
       
-      //sensors[SENSOR_BATTERY_VOLTAGE].value = mappedBatteryVoltage;
-      //sensors[SENSOR_BATTERY_VOLTAGE].isFresh = true;
     }
     
     rxDataIsFresh[DAT_BAT_VBAT] = false;
@@ -34,13 +31,10 @@ void manageDataProcessing() {
     uint16_t mappedSpeed = map(rxData[DAT_MTR_SPD], 0, 64, 0, UINT16_MAX);
     
     if (modeo.getValueForSensor(SENSOR_SPEED) != mappedSpeed) {
-      mapSpeedToDamping(rxData[DAT_MTR_SPD]);
-      //buildPowerOutputCurve();
       
+      mapSpeedToDamping(rxData[DAT_MTR_SPD]);
       modeo.setValueForSensor(mappedSpeed, SENSOR_SPEED);
       
-      //sensors[SENSOR_SPEED].value = mappedSpeed;
-      //sensors[SENSOR_SPEED].isFresh = true;
     }
     
     rxDataIsFresh[DAT_MTR_SPD] = false;
@@ -241,24 +235,16 @@ void handleStrainMessageLight(byte newStrain) {
   riderEffortSensorValue = map(riderEffortSensorValue, 0, maxEffort, 0, UINT16_MAX);
   riderEffortSensorValue = round(riderEffortSensorValue);
   modeo.setValueForSensor(riderEffortSensorValue, SENSOR_RIDER_EFFORT);
-  //sensors[SENSOR_RIDER_EFFORT].value = riderEffortSensorValue;
-  //sensors[SENSOR_RIDER_EFFORT].isFresh = true;
   
   float filteredRiderEffortSensorValue = constrain(filteredRiderEffort, 0, maxEffort);
   filteredRiderEffortSensorValue = map(filteredRiderEffortSensorValue, 0, maxEffort, 0, UINT16_MAX);
   modeo.setValueForSensor(filteredRiderEffortSensorValue, SENSOR_FILTERED_RIDER_EFFORT);
-  //sensors[SENSOR_FILTERED_RIDER_EFFORT].value = filteredRiderEffortSensorValue;
-  //sensors[SENSOR_FILTERED_RIDER_EFFORT].isFresh = true;
   
   unsigned short rawStrainSensorValue = map(newStrain, 0, 64, 0, UINT16_MAX);
   modeo.setValueForSensor(rawStrainSensorValue, SENSOR_RAW_STRAIN);
-  //sensors[SENSOR_RAW_STRAIN].value = rawStrainSensorValue;
-  //sensors[SENSOR_RAW_STRAIN].isFresh = true;
   
   unsigned short torqueAppliedSensorValue = map(torque, 0, 64, 0, UINT16_MAX);
   modeo.setValueForSensor(torqueAppliedSensorValue, SENSOR_TORQUE_APPLIED);
-  //sensors[SENSOR_TORQUE_APPLIED].value = torqueAppliedSensorValue;
-  //sensors[SENSOR_TORQUE_APPLIED].isFresh = true;
   
   /*
   Serial.print(riderEffort);

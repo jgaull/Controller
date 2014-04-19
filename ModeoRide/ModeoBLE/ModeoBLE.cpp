@@ -78,8 +78,6 @@ ModeoBLE::ModeoBLE(byte numProperties, byte numSensors, byte numBeziers) {
     _numProperties = numProperties;
     _numSensors = numSensors;
     _numBeziers = numBeziers;
-    
-    _bleMini.begin(57600);
 }
 
 void ModeoBLE::startup() {
@@ -87,6 +85,8 @@ void ModeoBLE::startup() {
     
     if (_state == STATE_OFF && _numProperties == _propertiesLength && _numSensors == _sensorsLength) {
         retrieveCalibrations();
+        
+        _bleMini.begin(57600);
     }
     else {
         Serial.println("Failure at startup.");
@@ -275,10 +275,14 @@ void ModeoBLE::performBluetoothReceive() {
     byte currentlyAvailable = _bleMini.available();
     
     if ( currentlyAvailable > 0 && currentlyAvailable == _lastAvailable ) {
+        
+        Serial.print("currentlyAvailable = ");
+        Serial.println(currentlyAvailable);
+        
         byte identifier = _bleMini.read();
         
-        //Serial.print("identifier: ");
-        //Serial.println(identifier);
+        Serial.print("identifier: ");
+        Serial.println(identifier);
         
         switch(identifier) {
             case REQUEST_CONNECT:

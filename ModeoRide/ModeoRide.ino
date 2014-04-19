@@ -61,27 +61,11 @@ float filteredRiderEffort = 0;
 
 float strainDampingMultiplier = 0.0f;
 
-/*Bezier assist;
-Bezier regen;
-Bezier damping;*/
-
 boolean trqCmdTxFlag = false;
 
 //*****TrqMgmt Variables
 
-//Sensor sensors[NUM_SENSORS];
-//Property properties[NUM_PROPERTIES];
-
-//Property propertyPendingSave;
-byte propertyIdentifierForPropertyPendingSave;
-
-Bezier bezierPendingSave;
-
 boolean lastButtonState = false;
-
-AltSoftSerial BLEMini;
-//#define BLEMini Serial
-byte lastAvailable = 0;
   
 ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES, NUM_SENSORS, NUM_BEZIERS);
 
@@ -98,9 +82,7 @@ void setup()
   
   digitalWrite(BLE_POWER_PIN, HIGH);
 
-  CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx system
-
-  BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
+  CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx syste;
   
   constructBLESensors();
   constructBLEProperties();
@@ -113,13 +95,6 @@ void setup()
   modeo.startup();
 }
 
-void smoothingMinDidChange(unsigned short newValue, unsigned short oldValue) {
-  Serial.print("new value: ");
-  //Serial.print(newValue);
-  Serial.print(", old value: ");
-  //Serial.println(oldValue);
-}
-
 
 // MAIN LOOP
 void loop()
@@ -130,10 +105,6 @@ void loop()
   
   performCANRX();
   
-  //performBluetoothSend();
-  
-  //performBluetoothReceive();
-  
   modeo.update();
   
   performPeriodicMessageSend(now);
@@ -141,10 +112,6 @@ void loop()
   manageTxTimers(now);
   
   manageDataProcessing();
-  
-  //performSerialDebugging();
-  
-  //manageActionCounter();
   
   //Serial.print("freeMemory() = ");
   //Serial.println(freeMemory());
@@ -170,5 +137,44 @@ void manageVehicleState(bool switchValue) {
   }
   
   digitalWrite(SWITCH_LED_PIN, vehicleState == VEHICLE_ON);
+}
+
+void constructBLEBeziers() {
+  modeo.registerBezier(CURVE_TYPE_ASSIST);
+  modeo.registerBezier(CURVE_TYPE_DAMPING);
+}
+
+void constructBLESensors() {
+  
+  for (byte i = 0; i < NUM_SENSORS; i++) {
+    modeo.registerSensor(i);
+  }
+}
+
+void constructBLEProperties() {
+  
+  byte doNotSaveListLength = 9;
+  byte doNotSaveList[9] = { PROPERTY_SENSOR_RIDER_EFFORT_STATE,
+                            PROPERTY_SENSOR_SPEED_STATE,
+                            PROPERTY_SENSOR_RAW_STRAIN_STATE,
+                            PROPERTY_SENSOR_TORQUE_APPLIED_STATE,
+                            PROPERTY_SENSOR_MOTOR_TEMP_STATE,
+                            PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE,
+                            PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE,
+                            PROPERTY_SENSOR_CURRENT_STRAIN_STATE,
+                            PROPERTY_TORQUE_MULTIPLIER };
+  
+  for (byte i = 0; i < NUM_PROPERTIES; i++) {
+    
+    boolean eepromSave = true;
+    for (byte j = 0; j < doNotSaveListLength; j++) {
+      if (doNotSaveList[j] == i) {
+        eepromSave = false;
+        break;
+      }
+    }
+    
+    modeo.registerProperty(i, eepromSave);
+  }
 }
 

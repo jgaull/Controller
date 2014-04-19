@@ -1,7 +1,6 @@
 void activateBionx(){
   //digitalWrite(WAKE_RELAY_PIN,HIGH);
   digitalWrite(INDICATOR_LED_PIN, HIGH);
-  retrieveCalibrations();
    
   //digitalWrite(WAKE_RELAY_PIN,LOW);
   digitalWrite(INDICATOR_LED_PIN, LOW);
@@ -105,9 +104,6 @@ void activateBionx(){
 
 
 void shutdownBionx() {
-  
-  storeCalibrations();
-  stopSensorUpdates();
   
   //JIC code:  SEND TWO zero-speed commands, SEND 0A command, SET DIRECTION FORWARD
   txBuf[0]= 0x00;

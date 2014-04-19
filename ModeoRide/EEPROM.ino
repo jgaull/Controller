@@ -1,4 +1,4 @@
-void retrieveCalibrations(){
+/*void retrieveCalibrations(){
   
   //Serial.println("Started property restore");
  
@@ -19,7 +19,6 @@ void retrieveCalibrations(){
   Serial.print("Restored ");
   Serial.print(propertyCount);
   Serial.println(" properties.");
-  */
 }
 
 
@@ -43,8 +42,8 @@ void storeCalibrations() {
   Serial.print("Saved ");
   Serial.print(propertyCount);
   Serial.println(" properties.");
-  //*/
-}
+  //
+}*/
 
 
 

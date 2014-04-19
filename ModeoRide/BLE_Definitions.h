@@ -30,6 +30,8 @@
 
 #define NUM_PROPERTIES 16 //Is there a better way to do this?
 
+#define NUM_BEZIERS 2
+
 //Request Identifiers
 #define REQUEST_CONNECT 10
 #define REQUEST_DISCONNECT 11

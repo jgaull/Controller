@@ -1,3 +1,4 @@
+/*
 void performBluetoothSend() {
   
   boolean hasSentValue = false;
@@ -270,7 +271,7 @@ void addBezier() {
       Serial.print(" bytes for body. Has ");
       Serial.print(BLEMini.available());
       Serial.println(" bytes.");
-      //*/
+      //
       clearBLEBuffer();
     }
   }
@@ -332,9 +333,16 @@ void stopSensorUpdates() {
     properties[sensors[i].propertyAddress].value = false; //when we're performing a sync then we reset the sensors.
   }
 }
+*/
+
+void constructBLEBeziers() {
+  modeo.registerBezier(CURVE_TYPE_ASSIST);
+  modeo.registerBezier(CURVE_TYPE_DAMPING);
+}
 
 void constructBLESensors() {
   
+  /*
   for (byte i = 0; i < NUM_SENSORS; i++) {
     sensors[i].dataIdentifier = i;
     sensors[i].value = 0;
@@ -349,26 +357,14 @@ void constructBLESensors() {
   sensors[SENSOR_MOTOR_TEMP].propertyAddress = PROPERTY_SENSOR_MOTOR_TEMP_STATE;
   sensors[SENSOR_BATTERY_VOLTAGE].propertyAddress = PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE;
   sensors[SENSOR_FILTERED_RIDER_EFFORT].propertyAddress = PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE;
+  */
+  
+  for (byte i = 0; i < NUM_SENSORS; i++) {
+    modeo.registerSensor(i);
+  }
 }
 
 void constructBLEProperties() {
-  
-  /*
-  for (byte i = 0; i < NUM_PROPERTIES; i++) {
-    properties[i].value = 0;
-    properties[i].eepromSave = true;
-  }
-
-  properties[PROPERTY_SENSOR_RIDER_EFFORT_STATE].eepromSave = false;
-  properties[PROPERTY_SENSOR_SPEED_STATE].eepromSave = false;
-  properties[PROPERTY_SENSOR_RAW_STRAIN_STATE].eepromSave = false;
-  properties[PROPERTY_SENSOR_TORQUE_APPLIED_STATE].eepromSave = false;
-  properties[PROPERTY_SENSOR_MOTOR_TEMP_STATE].eepromSave = false;
-  properties[PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE].eepromSave = false;
-  properties[PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE].eepromSave = false;
-  properties[PROPERTY_SENSOR_CURRENT_STRAIN_STATE].eepromSave = false;
-  properties[PROPERTY_TORQUE_MULTIPLIER].eepromSave = false;
-  */
   
   byte doNotSaveListLength = 9;
   byte doNotSaveList[9] = { PROPERTY_SENSOR_RIDER_EFFORT_STATE,
@@ -393,14 +389,4 @@ void constructBLEProperties() {
     
     modeo.registerProperty(i, eepromSave);
   }
-}
-
-Property copyProperty(byte propertyIdentifier) {
-  Property newProperty;
-  
-  newProperty.eepromSave = properties[propertyIdentifier].eepromSave;
-  newProperty.value = properties[propertyIdentifier].value;
-  newProperty.pendingSave = properties[propertyIdentifier].pendingSave;
-  
-  return newProperty;
 }

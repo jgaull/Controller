@@ -61,18 +61,18 @@ float filteredRiderEffort = 0;
 
 float strainDampingMultiplier = 0.0f;
 
-Bezier assist;
+/*Bezier assist;
 Bezier regen;
-Bezier damping;
+Bezier damping;*/
 
 boolean trqCmdTxFlag = false;
 
 //*****TrqMgmt Variables
 
-Sensor sensors[NUM_SENSORS];
-Property properties[NUM_PROPERTIES];
+//Sensor sensors[NUM_SENSORS];
+//Property properties[NUM_PROPERTIES];
 
-Property propertyPendingSave;
+//Property propertyPendingSave;
 byte propertyIdentifierForPropertyPendingSave;
 
 Bezier bezierPendingSave;
@@ -83,7 +83,7 @@ AltSoftSerial BLEMini;
 //#define BLEMini Serial
 byte lastAvailable = 0;
   
-ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES);
+ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES, NUM_SENSORS, NUM_BEZIERS);
 
 //  setup() is called at startup
 void setup()
@@ -104,12 +104,12 @@ void setup()
   
   constructBLESensors();
   constructBLEProperties();
+  constructBLEBeziers();
   
   lastButtonState = digitalRead(ON_OFF_SWITCH_PIN);
   
   activateBionx();
   
-  modeo.saveValueForProperty(NUM_PROPERTIES, PROPERTY_NUM_PROPERTIES);
   modeo.startup();
 }
 
@@ -141,7 +141,7 @@ void loop()
   manageTxTimers(now);
   
   manageDataProcessing();
-
+  
   //performSerialDebugging();
   
   //manageActionCounter();
@@ -156,10 +156,12 @@ void manageVehicleState(bool switchValue) {
     
     if (vehicleState == VEHICLE_OFF && switchValue == HIGH) {
       activateBionx(); // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
+      modeo.startup();
       Serial.println("ACTIVATE BIONX COMPLETE");
     }
     else if (vehicleState == VEHICLE_ON && switchValue == HIGH) {
       shutdownBionx(); // send the stop cmds to the battery and motor inverter if the switch is off while we were running
+      modeo.shutdown();
       Serial.println("SHUTDOWN BIONX COMPLETE");
     }
     

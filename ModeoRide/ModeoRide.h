@@ -21,6 +21,7 @@
 #define CURVE_TYPE_DAMPING 1
 #define CURVE_TYPE_REGEN 2
 
+/*
 struct Property {
   uint16_t value;
   boolean eepromSave;
@@ -33,12 +34,16 @@ struct Sensor {
   byte propertyAddress;
   boolean isFresh;
 };
+*/
 
- struct point {
+/*
+struct point {
     byte x;
     byte y;
 };
+*/
 
+/*
 struct Bezier {
   byte type;
   byte numPoints;
@@ -47,7 +52,7 @@ struct Bezier {
   boolean cacheIsValid;
   byte maxX;
   byte maxY;
-};
+};*/
 
 //Helpful
 #define UINT16_MAX 65535

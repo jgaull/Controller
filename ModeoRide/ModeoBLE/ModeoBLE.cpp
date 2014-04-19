@@ -27,6 +27,9 @@
 #define REQUEST_WRITE_BEZIER 17
 #define REQUEST_WRITE_GET_PROPERTY 18
 
+#define STATE_OFF 0
+#define STATE_ON 1
+
 #include <AltSoftSerial.h>
 #include <EEPROM.h>
 
@@ -36,26 +39,45 @@
 struct Property {
     unsigned short value;
     byte identifier;
-    short readWritePermissions;
+    byte readWritePermissions;
     bool pendingSave;
     bool eepromSave;
     void (*callback)(unsigned short, unsigned short);
-} ;
+};
+
+struct Sensor {
+    byte identifier;
+    unsigned short value;
+};
 
 Property _properties[25];
 byte _propertiesLength = 0;
-AltSoftSerial _bleMini;
-
+byte _numProperties = 0;
 Property _propertyPendingSave;
 byte _propertyIdentifierForPropertyPendingSave;
 
-byte _numProperties = 0;
+Sensor _sensors[10];
+byte _sensorsLength = 0;
+byte _numSensors = 0;
+
+Bezier _beziers[2];
+byte _beziersLength = 0;
+byte _numBeziers = 0;
+Bezier _bezierPendingSave;
+
+AltSoftSerial _bleMini;
+
+
 byte _lastAvailable = 0;
 
-ModeoBLE::ModeoBLE(int numProperties) {
+byte _state = STATE_OFF;
+
+ModeoBLE::ModeoBLE(byte numProperties, byte numSensors, byte numBeziers) {
     Serial.println("ModeoBLE Constructed.");
     
     _numProperties = numProperties;
+    _numSensors = numSensors;
+    _numBeziers = numBeziers;
     
     _bleMini.begin(57600);
 }
@@ -63,16 +85,18 @@ ModeoBLE::ModeoBLE(int numProperties) {
 void ModeoBLE::startup() {
     Serial.println("ModeoBLE Startup!");
     
-    if (_numProperties == _propertiesLength) {
+    if (_state == STATE_OFF && _numProperties == _propertiesLength && _numSensors == _sensorsLength) {
         retrieveCalibrations();
     }
     else {
-        Serial.println("Not enough properties registered to start BLE.");
+        Serial.println("Failure at startup.");
     }
 }
 
 void ModeoBLE::shutdown() {
     Serial.println("ModeoBLE Shutdown!");
+    storeCalibrations();
+    _state = STATE_OFF;
 }
 
 void ModeoBLE::update() {
@@ -117,18 +141,84 @@ void ModeoBLE::setValueForProperty(unsigned short value, byte identifier) {
 
 
 unsigned short ModeoBLE::getValueForProperty(byte identifier) {
-    Serial.println("Get Value");
-    
     int index = indexForProperty(identifier);
     if (index != -1) {
         return _properties[index].value;
     }
 }
 
-void ModeoBLE::clearEEPROM() {
-    Serial.println("Clear EEPROM");
+void ModeoBLE::registerSensor(byte identifier) {
+    if (indexForProperty(identifier) == -1) {
+        _sensors[_sensorsLength].identifier = identifier;
+        _sensors[_sensorsLength].value = 0;
+        _sensorsLength++;
+        Serial.println("Sensor Registered.");
+    }
+    else {
+        Serial.println("Sensor already registered.");
+    }
 }
 
+void ModeoBLE::setValueForSensor(unsigned short value, byte identifier) {
+    int index = indexForSensor(identifier);
+    if (index != -1) {
+        _sensors[index].value = value;
+    }
+    else {
+        Serial.print("Connot set sensor value. Sensor with identifier ");
+        Serial.print(identifier);
+        Serial.println(" not valid.");
+    }
+}
+
+unsigned short ModeoBLE::getValueForSensor(byte identifier) {
+    int index = indexForSensor(identifier);
+    if (index != -1) {
+        return _sensors[index].value;
+    }
+    else {
+        Serial.print("Cannot get sensor value. Sensor with identifier ");
+        Serial.print(identifier);
+        Serial.println(" not valid.");
+    }
+}
+
+void ModeoBLE::registerBezier(byte identifier) {
+    if (indexForBezier(identifier) == -1) {
+        _beziers[_beziersLength].identifier = identifier;
+        _beziers[_beziersLength].cacheIsValid = false;
+        _beziers[_beziersLength].numPoints = 4;
+        _beziers[_beziersLength].maxX = 255;
+        _beziers[_beziersLength].maxY = 255;
+        
+        for (byte i = 0; i < 4; i++) {
+            _beziers[_beziersLength].points[i].x = 0;
+            _beziers[_beziersLength].points[i].y = 0;
+        }
+        
+        _beziersLength++;
+        Serial.println("Register bezier.");
+    }
+    else {
+        Serial.print("Bezier with ID ");
+        Serial.print(identifier);
+        Serial.println(" already registered.");
+    }
+}
+
+Bezier ModeoBLE::getBezier(byte identifier) {
+    int index = indexForBezier(identifier);
+    if (index != -1) {
+        return _beziers[index];
+    }
+    else {
+        Serial.print("Cannot get sensor value. Sensor with identifier ");
+        Serial.print(identifier);
+        Serial.println(" not valid.");
+    }
+}
+
+//Debug funtions
 void ModeoBLE::saveValueForProperty(unsigned short value, byte identifier) {
     int index = indexForProperty(identifier);
     if (index != -1) {
@@ -144,6 +234,11 @@ void ModeoBLE::saveValueForProperty(unsigned short value, byte identifier) {
     }
 }
 
+void ModeoBLE::clearEEPROM() {
+    Serial.println("Clear EEPROM");
+}
+
+//Private in-yer-face
 int ModeoBLE::indexForProperty(byte identifier) {
     for (byte i = 0; i < _propertiesLength; i++) {
         if (_properties[i].identifier == identifier) {
@@ -154,6 +249,28 @@ int ModeoBLE::indexForProperty(byte identifier) {
     return -1;
 }
 
+int ModeoBLE::indexForSensor(byte identifier) {
+    for (byte i = 0; i < _sensorsLength; i++) {
+        if (_sensors[i].identifier == identifier) {
+            return i;
+        }
+    }
+    
+    return -1;
+}
+
+int ModeoBLE::indexForBezier(byte identifier) {
+    for (byte i = 0; i < _beziersLength; i++) {
+        if (_beziers[i].identifier == identifier) {
+            return i;
+        }
+    }
+    
+    return -1;
+}
+
+
+//BLE Shit
 void ModeoBLE::performBluetoothReceive() {
     byte currentlyAvailable = _bleMini.available();
     
@@ -186,12 +303,12 @@ void ModeoBLE::performBluetoothReceive() {
                 
             case REQUEST_ADD_BEZIER:
                 Serial.println("bezier");
-                //addBezier();
+                addBezier();
                 break;
                 
             case REQUEST_GET_SENSOR_VALUE:
                 Serial.println("get sensor value");
-                //getSensorValue();
+                getSensorValue();
                 break;
                 
             case REQUEST_WRITE_PROPERTY:
@@ -201,7 +318,7 @@ void ModeoBLE::performBluetoothReceive() {
                 
             case REQUEST_WRITE_BEZIER:
                 Serial.println("write bezier");
-                //writeBezier();
+                writeBezier();
                 break;
                 
             case REQUEST_WRITE_GET_PROPERTY:
@@ -229,7 +346,7 @@ void ModeoBLE::performConnect() {
 }
 
 void ModeoBLE::performDisconnect() {
-    //storeCalibrations();
+    storeCalibrations();
     //stopSensorUpdates();
     _bleMini.write(REQUEST_DISCONNECT);
     _bleMini.write(1);
@@ -327,13 +444,12 @@ void ModeoBLE::writeProperty() {
     }
 }
 
-/*
-void getSensorValue() {
+void ModeoBLE::getSensorValue() {
     if (_bleMini.available() >= 1) {
         
         byte sensorIdentifier = _bleMini.read();
         
-        unsigned short value = sensors[sensorIdentifier].value;
+        unsigned short value = _sensors[sensorIdentifier].value;
         
         _bleMini.write(REQUEST_GET_SENSOR_VALUE);
         _bleMini.write(sensorIdentifier);
@@ -345,7 +461,7 @@ void getSensorValue() {
     }
 }
 
-void addBezier() {
+void ModeoBLE::addBezier() {
     Bezier bezier;
     byte headerSize = 4;
     
@@ -356,7 +472,7 @@ void addBezier() {
             header[i] = _bleMini.read();
         }
         
-        bezier.type = header[0];
+        bezier.identifier = header[0];
         bezier.maxX = header[1];
         bezier.maxY = header[2];
         bezier.numPoints = header[3];
@@ -378,7 +494,7 @@ void addBezier() {
                 bezier.points[i / 2].y = pointY;
             }
             
-            bezierPendingSave = bezier;
+            _bezierPendingSave = bezier;
             
             byte messageData[headerSize + bodySize];
             for (byte i = 0; i < headerSize; i++) {
@@ -389,7 +505,7 @@ void addBezier() {
                 messageData[i + headerSize] = body[i];
             }
             
-            BLEMini.write(REQUEST_ADD_BEZIER);
+            _bleMini.write(REQUEST_ADD_BEZIER);
             for (byte i = 0; i < headerSize + bodySize; i++) {
                 _bleMini.write(messageData[i]);
             }
@@ -401,7 +517,7 @@ void addBezier() {
              Serial.print(" bytes for body. Has ");
              Serial.print(BLEMini.available());
              Serial.println(" bytes.");
-             //
+             //*/
             clearBLEBuffer();
         }
     }
@@ -412,36 +528,24 @@ void addBezier() {
     }
 }
 
-void writeBezier() {
+void ModeoBLE::writeBezier() {
     
     if (_bleMini.available() >= 1) {
         byte bezierType = _bleMini.read();
         
         boolean success = false;
-        if (bezierType == bezierPendingSave.type) {
+        if (bezierType == _bezierPendingSave.identifier) {
             
-            switch(bezierPendingSave.type) {
-                    
-                case CURVE_TYPE_ASSIST:
-                    assist = bezierPendingSave;
-                    break;
-                    
-                case CURVE_TYPE_DAMPING:
-                    damping = bezierPendingSave;
-                    break;
-                    
-                case CURVE_TYPE_REGEN:
-                    regen = bezierPendingSave;
-                    break;
-                    
-                    //default:
-                    //Serial.println("Unrecognized Curve Identifier");
+            int index = indexForBezier(_bezierPendingSave.identifier);
+            if (index != -1) {
+                
+                _beziers[index] = _bezierPendingSave;
+                
+                success = true;
+                
+                _bleMini.write(REQUEST_WRITE_BEZIER);
+                _bleMini.write(success);
             }
-            
-            success = true;
-            
-            _bleMini.write(REQUEST_WRITE_BEZIER);
-            _bleMini.write(success);
         }
         else {
             //Serial.println("bezier type did not match. flail.");
@@ -451,7 +555,6 @@ void writeBezier() {
         clearBLEBuffer();
     }
 }
-*/
 
 void ModeoBLE::clearBLEBuffer() {
     while(_bleMini.available() > 0) {
@@ -464,21 +567,24 @@ void ModeoBLE::clearBLEBuffer() {
 void ModeoBLE::retrieveCalibrations() {
     
     //Serial.println("Started property restore");
-    
+    byte propertyCount = 0;
     for (byte i = 0; i < _numProperties; i++) {
         
         if (_properties[i].eepromSave) {
             int lsb = i * 2 + 1;
             int msb = i * 2;
             _properties[i].value = (EEPROM.read(msb) << 8) + EEPROM.read(lsb);
+            _properties[i].pendingSave = false;
+            
+            propertyCount++;
         }
     }
     
-    /*
+    ///*
      Serial.print("Restored ");
      Serial.print(propertyCount);
      Serial.println(" properties.");
-     */
+     //*/
 }
 
 
@@ -498,7 +604,7 @@ void ModeoBLE::storeCalibrations() {
         }
     }
     
-    /*
+    ///*
      Serial.print("Saved ");
      Serial.print(propertyCount);
      Serial.println(" properties.");

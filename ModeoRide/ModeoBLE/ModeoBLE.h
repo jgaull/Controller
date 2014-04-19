@@ -9,25 +9,44 @@
 
 #include "Arduino.h"
 
-#define CAN_READ_BLE_READ 0
-#define CAN_READ_WRITE_BLE_READ 1
-#define CAN_READ_BLE_BLE_READ_WRITE 2
-#define CAN_READ_WRITE_BLE_READ_WRITE 3
+#define RESOLUTION 10
+
+struct point {
+    byte x;
+    byte y;
+};
+
+struct Bezier {
+    byte identifier;
+    byte numPoints;
+    point points[4];
+    point cache[RESOLUTION];
+    boolean cacheIsValid;
+    byte maxX;
+    byte maxY;
+};
 
 class ModeoBLE {
     
     public:
     
-    ModeoBLE(int numProperties);
+    ModeoBLE(byte numProperties, byte numSensors, byte numBeziers);
     
     void startup();
     void shutdown();
     void update();
     
     void registerProperty(byte identifier, bool eepromSave);
-    void registerPropertyWithCallback(byte identifier, byte readWritePermissions, void (*callback)(unsigned short, unsigned short));
+    //void registerPropertyWithCallback(byte identifier, byte readWritePermissions, void (*callback)(unsigned short, unsigned short));
     void setValueForProperty(unsigned short value, byte propertyId);
     unsigned short getValueForProperty(byte identifier);
+    
+    void registerSensor(byte identifier);
+    void setValueForSensor(unsigned short value, byte identifier);
+    unsigned short getValueForSensor(byte identifier);
+    
+    void registerBezier(byte identifier);
+    Bezier getBezier(byte identifier);
     
     void clearEEPROM();
     void saveValueForProperty(unsigned short value, byte identifier);
@@ -35,6 +54,8 @@ class ModeoBLE {
     private:
     
     int indexForProperty(byte identifier);
+    int indexForSensor(byte identifier);
+    int indexForBezier(byte identifier);
     
     void performBluetoothReceive();
     void performConnect();
@@ -44,6 +65,9 @@ class ModeoBLE {
     void clearBLEBuffer();
     void setPropertyValue();
     void writeProperty();
+    void getSensorValue();
+    void addBezier();
+    void writeBezier();
     
     void retrieveCalibrations();
     void storeCalibrations();

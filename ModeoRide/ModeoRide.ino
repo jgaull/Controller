@@ -32,7 +32,6 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 
 #include "ModeoRide.h"                  //  Local headers, need to move constants here
 #include "CAN_Definitions.h"
-#include "BLE_Definitions.h"
 
 //VARIABLE DECLARATIONS FOLLOW
 

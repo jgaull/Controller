@@ -26,6 +26,8 @@
 #define REQUEST_WRITE_PROPERTY 16
 #define REQUEST_WRITE_BEZIER 17
 #define REQUEST_WRITE_GET_PROPERTY 18
+#define REQUEST_BATCH_SET_PROPERTY 19
+#define REQUEST_BATCH_WRITE_PROPERTY 20
 
 #define STATE_OFF 0
 #define STATE_ON 1
@@ -50,13 +52,13 @@ struct Sensor {
     unsigned short value;
 };
 
-Property _properties[25];
+Property _properties[16];
 byte _propertiesLength = 0;
 byte _numProperties = 0;
 Property _propertyPendingSave;
 byte _propertyIdentifierForPropertyPendingSave;
 
-Sensor _sensors[10];
+Sensor _sensors[8];
 byte _sensorsLength = 0;
 byte _numSensors = 0;
 
@@ -64,6 +66,9 @@ Bezier _beziers[2];
 byte _beziersLength = 0;
 byte _numBeziers = 0;
 Bezier _bezierPendingSave;
+
+byte previousWriteRequest[16];
+byte previousWriteRequestLength = 0;
 
 AltSoftSerial _bleMini;
 
@@ -276,13 +281,13 @@ void ModeoBLE::performBluetoothReceive() {
     
     if ( currentlyAvailable > 0 && currentlyAvailable == _lastAvailable ) {
         
-        Serial.print("currentlyAvailable = ");
-        Serial.println(currentlyAvailable);
+        //Serial.print("currentlyAvailable = ");
+        //Serial.println(currentlyAvailable);
         
         byte identifier = _bleMini.read();
         
-        Serial.print("identifier: ");
-        Serial.println(identifier);
+        //Serial.print("identifier: ");
+        //Serial.println(identifier);
         
         switch(identifier) {
             case REQUEST_CONNECT:
@@ -330,6 +335,16 @@ void ModeoBLE::performBluetoothReceive() {
                 writeGetProperty();
                 break;
                 
+            case REQUEST_BATCH_SET_PROPERTY:
+                Serial.println("batch set property");
+                batchSetProperty();
+                break;
+                
+            case REQUEST_BATCH_WRITE_PROPERTY:
+                Serial.println("batch write property");
+                batchWriteProperty();
+                break;
+                
             default:
                 Serial.print("Uknown command: ");
                 Serial.println(identifier);
@@ -340,6 +355,64 @@ void ModeoBLE::performBluetoothReceive() {
     }
     else {
         _lastAvailable = currentlyAvailable;
+    }
+}
+
+void ModeoBLE::batchSetProperty() {
+    if ( _bleMini.available() >= 1) {
+        byte headerSize = 2;
+        byte numProperties = _bleMini.read();
+        byte numBytes = numProperties * 3;
+        previousWriteRequestLength = 2 + numBytes;
+        
+        if (_bleMini.available() >= numBytes) {
+            
+            previousWriteRequest[0] = REQUEST_BATCH_SET_PROPERTY;
+            previousWriteRequest[1] = numProperties;
+            for (byte i = 0; i < numBytes; i++) {
+                previousWriteRequest[i + 3] = _bleMini.read();
+            }
+            
+            for (byte i = 0; i < previousWriteRequestLength; i++) {
+                _bleMini.write(previousWriteRequest[i]);
+            }
+        }
+        else {
+            clearBLEBuffer();
+        }
+    }
+    else {
+        clearBLEBuffer();
+    }
+}
+
+void ModeoBLE::batchWriteProperty() {
+    if (_bleMini.available() >= 1) {
+        byte headerSize = 2;
+        byte dataSize = 3;
+        byte numProperties = previousWriteRequest[1];
+        boolean success = true;
+        
+        for (byte i = headerSize; i < previousWriteRequestLength; i += dataSize) {
+            byte propertyIdentifier = previousWriteRequest[i];
+            byte data1 = previousWriteRequest[i + 1];
+            byte data2 = previousWriteRequest[i + 2];
+            unsigned short value = (data2 << 8) + data1;
+            
+            if (propertyIdentifier < _numProperties) {
+                _properties[propertyIdentifier].value = value;
+                _properties[propertyIdentifier].pendingSave = true;
+            }
+            else {
+                success = false;
+            }
+        }
+        
+        _bleMini.write(REQUEST_BATCH_WRITE_PROPERTY);
+        _bleMini.write(success);
+    }
+    else {
+        clearBLEBuffer();
     }
 }
 
@@ -577,6 +650,7 @@ void ModeoBLE::retrieveCalibrations() {
         if (_properties[i].eepromSave) {
             int lsb = i * 2 + 1;
             int msb = i * 2;
+            
             _properties[i].value = (EEPROM.read(msb) << 8) + EEPROM.read(lsb);
             _properties[i].pendingSave = false;
             

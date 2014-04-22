@@ -68,6 +68,8 @@ class ModeoBLE {
     void getSensorValue();
     void addBezier();
     void writeBezier();
+    void batchSetProperty();
+    void batchWriteProperty();
     
     void retrieveCalibrations();
     void storeCalibrations();

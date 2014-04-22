@@ -387,33 +387,28 @@ void ModeoBLE::batchSetProperty() {
 }
 
 void ModeoBLE::batchWriteProperty() {
-    if (_bleMini.available() >= 1) {
-        byte headerSize = 2;
-        byte dataSize = 3;
-        byte numProperties = previousWriteRequest[1];
-        boolean success = true;
+    byte headerSize = 2;
+    byte dataSize = 3;
+    byte numProperties = previousWriteRequest[1];
+    boolean success = true;
+    
+    for (byte i = headerSize; i < previousWriteRequestLength; i += dataSize) {
+        byte propertyIdentifier = previousWriteRequest[i];
+        byte data1 = previousWriteRequest[i + 1];
+        byte data2 = previousWriteRequest[i + 2];
+        unsigned short value = (data2 << 8) + data1;
         
-        for (byte i = headerSize; i < previousWriteRequestLength; i += dataSize) {
-            byte propertyIdentifier = previousWriteRequest[i];
-            byte data1 = previousWriteRequest[i + 1];
-            byte data2 = previousWriteRequest[i + 2];
-            unsigned short value = (data2 << 8) + data1;
-            
-            if (propertyIdentifier < _numProperties) {
-                _properties[propertyIdentifier].value = value;
-                _properties[propertyIdentifier].pendingSave = true;
-            }
-            else {
-                success = false;
-            }
+        if (propertyIdentifier < _numProperties) {
+            _properties[propertyIdentifier].value = value;
+            _properties[propertyIdentifier].pendingSave = true;
         }
-        
-        _bleMini.write(REQUEST_BATCH_WRITE_PROPERTY);
-        _bleMini.write(success);
+        else {
+            success = false;
+        }
     }
-    else {
-        clearBLEBuffer();
-    }
+    
+    _bleMini.write(REQUEST_BATCH_WRITE_PROPERTY);
+    _bleMini.write(success);
 }
 
 void ModeoBLE::performConnect() {

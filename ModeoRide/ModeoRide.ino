@@ -38,35 +38,30 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 PROGMEM prog_uchar RX_IDS[32] = {0x11, 0x14, 0x16, 0x21, 0x70, 0x72, 0x32, 0xAA, 0x9A, 0x12, 0x20, 0x92, 0x6C, 0x30, 0x31, 0x33, 0x61, 0x80, 0x1D, 0x3B, 0x3C, 0x3D, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xF0, 0xF9, 0xFA, 0xFB, 0xFC};
 byte rxData[32];
 bool rxDataIsFresh[32] = {0};
-
 byte Temp_Var_For_Fwd_Twrk_Msg;
 byte Temp_Var_For_Fwd_Twrk_UpperByte;
-
 byte rxLen = 0;
 byte rxBuf[8];
-
 byte txLen = 0;
 byte txBuf[8];
-
-byte vehicleState = VEHICLE_OFF;
-
 long unsigned int rxId;
 long unsigned int txId;
+boolean trqCmdTxFlag = false;
+
+byte vehicleState = VEHICLE_OFF;
 
 byte cyclesSinceLastStroke = 0;
 
 float riderEffort = 0;
 float filteredRiderEffort = 0;
-
 float strainDampingMultiplier = 0.0f;
 
-boolean trqCmdTxFlag = false;
-
-//*****TrqMgmt Variables
-
 boolean lastButtonState = false;
+
+Bezier assist;
+Bezier damping;
   
-ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES, NUM_SENSORS, NUM_BEZIERS);
+ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES, NUM_SENSORS);
 
 //  setup() is called at startup
 void setup()
@@ -85,7 +80,6 @@ void setup()
   
   constructBLESensors();
   constructBLEProperties();
-  constructBLEBeziers();
   
   lastButtonState = digitalRead(ON_OFF_SWITCH_PIN);
   
@@ -114,7 +108,6 @@ void loop()
   
   //Serial.print("freeMemory() = ");
   //Serial.println(freeMemory());
-  
 }
 
 void manageVehicleState(bool switchValue) {
@@ -138,11 +131,6 @@ void manageVehicleState(bool switchValue) {
   digitalWrite(SWITCH_LED_PIN, vehicleState == VEHICLE_ON);
 }
 
-void constructBLEBeziers() {
-  modeo.registerBezier(CURVE_TYPE_ASSIST);
-  modeo.registerBezier(CURVE_TYPE_DAMPING);
-}
-
 void constructBLESensors() {
   
   for (byte i = 0; i < NUM_SENSORS; i++) {
@@ -151,29 +139,97 @@ void constructBLESensors() {
 }
 
 void constructBLEProperties() {
+  modeo.registerProperty(PROPERTY_SMOOTHING_MIN, true);
+  modeo.registerProperty(PROPERTY_SMOOTHING_MAX, true);
+  modeo.registerProperty(PROPERTY_STROKE_TIMEOUT_CYCLES, true);
+  modeo.registerProperty(PROPERTY_TORQUE_MULTIPLIER, true);
+  modeo.registerProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH, true);
+  modeo.registerProperty(PROPERTY_FANCY_ASSIST_STATE, true);
+  modeo.registerProperty(PROPERTY_NUM_PROPERTIES, true);
   
-  byte doNotSaveListLength = 9;
-  byte doNotSaveList[9] = { PROPERTY_SENSOR_RIDER_EFFORT_STATE,
-                            PROPERTY_SENSOR_SPEED_STATE,
-                            PROPERTY_SENSOR_RAW_STRAIN_STATE,
-                            PROPERTY_SENSOR_TORQUE_APPLIED_STATE,
-                            PROPERTY_SENSOR_MOTOR_TEMP_STATE,
-                            PROPERTY_SENSOR_BATTERY_VOLTAGE_STATE,
-                            PROPERTY_SENSOR_FILTERED_RIDER_EFFORT_STATE,
-                            PROPERTY_SENSOR_CURRENT_STRAIN_STATE,
-                            PROPERTY_TORQUE_MULTIPLIER };
+  modeo.registerPropertyWithCallback(CURVE_ASSIST_POINT_0, false, &assistDidChange);
+  modeo.registerPropertyWithCallback(CURVE_ASSIST_POINT_1, false, &assistDidChange);
+  modeo.registerPropertyWithCallback(CURVE_ASSIST_POINT_2, false, &assistDidChange);
+  modeo.registerPropertyWithCallback(CURVE_ASSIST_POINT_3, false, &assistDidChange);
+  modeo.registerPropertyWithCallback(CURVE_ASSIST_TOP_RIGHT, false, &assistDidChange);
   
-  for (byte i = 0; i < NUM_PROPERTIES; i++) {
-    
-    boolean eepromSave = true;
-    for (byte j = 0; j < doNotSaveListLength; j++) {
-      if (doNotSaveList[j] == i) {
-        eepromSave = false;
-        break;
-      }
-    }
-    
-    modeo.registerProperty(i, eepromSave);
-  }
+  modeo.registerPropertyWithCallback(CURVE_DAMPING_POINT_0, false, &dampingDidChange);
+  modeo.registerPropertyWithCallback(CURVE_DAMPING_POINT_1, false, &dampingDidChange);
+  modeo.registerPropertyWithCallback(CURVE_DAMPING_POINT_2, false, &dampingDidChange);
+  modeo.registerPropertyWithCallback(CURVE_DAMPING_POINT_3, false, &dampingDidChange);
+  modeo.registerPropertyWithCallback(CURVE_DAMPING_TOP_RIGHT, false, &dampingDidChange);
+}
+
+void assistDidChange(unsigned short oldValue, unsigned short newValue) {
+  long unsigned int timestamp = micros();
+  point point0;
+  unsigned short value = modeo.getValueForProperty(CURVE_ASSIST_POINT_0);
+  point0.x = value;
+  point0.y = value >> 8;
+  assist.points[0] = point0;
+  
+  point point1;
+  value = modeo.getValueForProperty(CURVE_ASSIST_POINT_1);
+  point1.x = value;
+  point1.y = value >> 8;
+  assist.points[1] = point1;
+  
+  point point2;
+  value = modeo.getValueForProperty(CURVE_ASSIST_POINT_2);
+  point2.x = value;
+  point2.y = value >> 8;
+  assist.points[2] = point2;
+  
+  point point3;
+  value = modeo.getValueForProperty(CURVE_ASSIST_POINT_3);
+  point3.x = value;
+  point3.y = value >> 8;
+  assist.points[3] = point3;
+  
+  point topRight;
+  value = modeo.getValueForProperty(CURVE_ASSIST_TOP_RIGHT);
+  topRight.x = value;
+  topRight.y = value >> 8;
+  assist.maxX = topRight.x;
+  assist.maxY = topRight.y;
+  
+  assist.cacheIsValid = false;
+  Serial.print("duration: ");
+  Serial.println(micros() - timestamp);
+}
+
+void dampingDidChange(unsigned short oldValue, unsigned short newValue) {
+  point point0;
+  unsigned short value = modeo.getValueForProperty(CURVE_DAMPING_POINT_0);
+  point0.x = value;
+  point0.y = value >> 8;
+  damping.points[0] = point0;
+  
+  point point1;
+  value = modeo.getValueForProperty(CURVE_DAMPING_POINT_1);
+  point1.x = value;
+  point1.y = value >> 8;
+  damping.points[1] = point1;
+  
+  point point2;
+  value = modeo.getValueForProperty(CURVE_DAMPING_POINT_2);
+  point2.x = value;
+  point2.y = value >> 8;
+  damping.points[2] = point2;
+  
+  point point3;
+  value = modeo.getValueForProperty(CURVE_DAMPING_POINT_3);
+  point3.x = value;
+  point3.y = value >> 8;
+  damping.points[3] = point3;
+  
+  point topRight;
+  value = modeo.getValueForProperty(CURVE_DAMPING_TOP_RIGHT);
+  topRight.x = value;
+  topRight.y = value >> 8;
+  damping.maxX = topRight.x;
+  damping.maxY = topRight.y;
+  
+  damping.cacheIsValid = false;
 }
 

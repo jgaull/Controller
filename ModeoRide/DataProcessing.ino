@@ -45,8 +45,6 @@ void manageDataProcessing() {
 //Bezier intersection functions
 byte mapEffortToPower(float effort) {
   
-  Bezier assist = modeo.getBezier(CURVE_TYPE_ASSIST);
-  
   byte mappedEffort = constrain(effort, 0, assist.maxX);
   mappedEffort = map(mappedEffort, 0, assist.maxX, 0, 255);
   
@@ -82,8 +80,6 @@ byte mapEffortToPower(float effort) {
 }
 
 float mapSpeedToDamping(byte motorSpeed) {
-  
-  Bezier damping = modeo.getBezier(CURVE_TYPE_DAMPING);
   
   float maxMultiplier = 1;
   motorSpeed = constrain(motorSpeed, 0, damping.maxX);
@@ -192,7 +188,8 @@ void handleStrainMessageLight(byte newStrain) {
   unsigned short smoothingMin = modeo.getValueForProperty(PROPERTY_SMOOTHING_MIN);
   unsigned short smoothingMax = modeo.getValueForProperty(PROPERTY_SMOOTHING_MAX);
   unsigned short riderEffortFilterStrength = modeo.getValueForProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH);
-  unsigned short maxEffort = modeo.getValueForProperty(PROPERTY_MAX_EFFORT);
+  //unsigned short maxEffort = modeo.getValueForProperty(PROPERTY_MAX_EFFORT);
+  unsigned short maxEffort = 64;
   
   float filterAmount = map(64 - strainDelta, 0, 64, smoothingMin, smoothingMax);
   filterAmount /= (float)UINT16_MAX; //because map only works with whole numbers.

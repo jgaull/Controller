@@ -60,7 +60,7 @@ boolean lastButtonState = false;
 
 Bezier assist;
 Bezier damping;
-  
+
 ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES, NUM_SENSORS);
 
 //  setup() is called at startup
@@ -139,28 +139,20 @@ void constructBLESensors() {
 }
 
 void constructBLEProperties() {
-  modeo.registerProperty(PROPERTY_SMOOTHING_MIN, true);
-  modeo.registerProperty(PROPERTY_SMOOTHING_MAX, true);
-  modeo.registerProperty(PROPERTY_STROKE_TIMEOUT_CYCLES, true);
-  modeo.registerProperty(PROPERTY_TORQUE_MULTIPLIER, true);
-  modeo.registerProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH, true);
-  modeo.registerProperty(PROPERTY_FANCY_ASSIST_STATE, true);
-  modeo.registerProperty(PROPERTY_NUM_PROPERTIES, true);
+  modeo.registerProperty(PROPERTY_SMOOTHING_MIN, 2, true);
+  modeo.registerProperty(PROPERTY_SMOOTHING_MAX, 2, true);
+  modeo.registerProperty(PROPERTY_STROKE_TIMEOUT_CYCLES, 2, true);
+  modeo.registerProperty(PROPERTY_TORQUE_MULTIPLIER, 2, true);
+  modeo.registerProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH, 2, true);
+  modeo.registerProperty(PROPERTY_FANCY_ASSIST_STATE, 2, true);
+  modeo.registerProperty(PROPERTY_NUM_PROPERTIES, 2, true);
   
-  modeo.registerPropertyWithCallback(CURVE_ASSIST_POINT_0, false, &assistDidChange);
-  modeo.registerPropertyWithCallback(CURVE_ASSIST_POINT_1, false, &assistDidChange);
-  modeo.registerPropertyWithCallback(CURVE_ASSIST_POINT_2, false, &assistDidChange);
-  modeo.registerPropertyWithCallback(CURVE_ASSIST_POINT_3, false, &assistDidChange);
-  modeo.registerPropertyWithCallback(CURVE_ASSIST_TOP_RIGHT, false, &assistDidChange);
-  
-  modeo.registerPropertyWithCallback(CURVE_DAMPING_POINT_0, false, &dampingDidChange);
-  modeo.registerPropertyWithCallback(CURVE_DAMPING_POINT_1, false, &dampingDidChange);
-  modeo.registerPropertyWithCallback(CURVE_DAMPING_POINT_2, false, &dampingDidChange);
-  modeo.registerPropertyWithCallback(CURVE_DAMPING_POINT_3, false, &dampingDidChange);
-  modeo.registerPropertyWithCallback(CURVE_DAMPING_TOP_RIGHT, false, &dampingDidChange);
+  modeo.registerPropertyWithCallback(PROPERTY_ASSIST, 10, false, &assistDidChange);
+  modeo.registerPropertyWithCallback(PROPERTY_DAMPING, 10, false, &dampingDidChange);
 }
 
 void assistDidChange(unsigned short oldValue, unsigned short newValue) {
+  /*
   long unsigned int timestamp = micros();
   point point0;
   unsigned short value = modeo.getValueForProperty(CURVE_ASSIST_POINT_0);
@@ -196,9 +188,11 @@ void assistDidChange(unsigned short oldValue, unsigned short newValue) {
   assist.cacheIsValid = false;
   Serial.print("duration: ");
   Serial.println(micros() - timestamp);
+  */
 }
 
 void dampingDidChange(unsigned short oldValue, unsigned short newValue) {
+  /*
   point point0;
   unsigned short value = modeo.getValueForProperty(CURVE_DAMPING_POINT_0);
   point0.x = value;
@@ -231,5 +225,6 @@ void dampingDidChange(unsigned short oldValue, unsigned short newValue) {
   damping.maxY = topRight.y;
   
   damping.cacheIsValid = false;
+  */
 }
 

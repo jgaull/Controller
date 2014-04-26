@@ -185,9 +185,9 @@ void handleStrainMessageLight(byte newStrain) {
   
   byte strainDelta = round(newStrain * strainDampingMultiplier);
   
-  unsigned short smoothingMin = modeo.getValueForProperty(PROPERTY_SMOOTHING_MIN);
-  unsigned short smoothingMax = modeo.getValueForProperty(PROPERTY_SMOOTHING_MAX);
-  unsigned short riderEffortFilterStrength = modeo.getValueForProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH);
+  unsigned short smoothingMin = modeo.getUnsignedShortValueForProperty(PROPERTY_SMOOTHING_MIN);
+  unsigned short smoothingMax = modeo.getUnsignedShortValueForProperty(PROPERTY_SMOOTHING_MAX);
+  unsigned short riderEffortFilterStrength = modeo.getUnsignedShortValueForProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH);
   //unsigned short maxEffort = modeo.getValueForProperty(PROPERTY_MAX_EFFORT);
   unsigned short maxEffort = 64;
   
@@ -205,14 +205,14 @@ void handleStrainMessageLight(byte newStrain) {
     cyclesSinceLastStroke = min(cyclesSinceLastStroke + 1, 254);
   }
   
-  unsigned short strokeTimeoutCycles = modeo.getValueForProperty(PROPERTY_STROKE_TIMEOUT_CYCLES);
+  unsigned short strokeTimeoutCycles = modeo.getUnsignedShortValueForProperty(PROPERTY_STROKE_TIMEOUT_CYCLES);
   if (cyclesSinceLastStroke > strokeTimeoutCycles) {
     riderEffort = 0;
     filteredRiderEffort = 0;
   }
   
   byte torque;
-  unsigned short fancyAssistState = modeo.getValueForProperty(PROPERTY_FANCY_ASSIST_STATE);
+  unsigned short fancyAssistState = modeo.getUnsignedShortValueForProperty(PROPERTY_FANCY_ASSIST_STATE);
   
   if (fancyAssistState == STANDARD_ASSIST) {
     torque = map(filteredRiderEffort, 0, maxEffort, 0, 64);
@@ -222,7 +222,7 @@ void handleStrainMessageLight(byte newStrain) {
     torque = map(effortMappedToPower, 0, BYTE_MAX, 0, 64);
   }
   
-  unsigned short torqueMultiplierValue = modeo.getValueForProperty(PROPERTY_TORQUE_MULTIPLIER);
+  unsigned short torqueMultiplierValue = modeo.getUnsignedShortValueForProperty(PROPERTY_TORQUE_MULTIPLIER);
   
   float torqueMultiplier = ((float)torqueMultiplierValue / (float)UINT16_MAX) * 2;
   torque = constrain(round(torque * torqueMultiplier), 0, 64);

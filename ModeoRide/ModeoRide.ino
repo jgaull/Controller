@@ -86,6 +86,24 @@ void setup()
   activateBionx();
   
   modeo.startup();
+  
+  ///*
+  byte length;
+  byte value[2];
+  modeo.setUnsignedShortValueForProperty(1000, PROPERTY_FANCY_ASSIST_STATE);
+  modeo.getValueForProperty(PROPERTY_FANCY_ASSIST_STATE, &length, value);
+  
+  Serial.print("length = ");
+  Serial.println(length);
+  Serial.print("value = ");
+  Serial.println(modeo.getUnsignedShortValueForProperty(PROPERTY_FANCY_ASSIST_STATE));
+  for (byte i = 0; i < length; i++) {
+    Serial.print("value[");
+    Serial.print(i);
+    Serial.print("] = ");
+    Serial.println(value[i]);
+  }
+  //*/
 }
 
 
@@ -147,84 +165,83 @@ void constructBLEProperties() {
   modeo.registerProperty(PROPERTY_FANCY_ASSIST_STATE, 2, true);
   modeo.registerProperty(PROPERTY_NUM_PROPERTIES, 2, true);
   
-  modeo.registerPropertyWithCallback(PROPERTY_ASSIST, 10, false, &assistDidChange);
-  modeo.registerPropertyWithCallback(PROPERTY_DAMPING, 10, false, &dampingDidChange);
+  modeo.registerPropertyWithCallback(PROPERTY_ASSIST, 12, false, &assistDidChange);
+  modeo.registerPropertyWithCallback(PROPERTY_DAMPING, 12, false, &dampingDidChange);
 }
 
-void assistDidChange(unsigned short oldValue, unsigned short newValue) {
-  /*
-  long unsigned int timestamp = micros();
-  point point0;
-  unsigned short value = modeo.getValueForProperty(CURVE_ASSIST_POINT_0);
-  point0.x = value;
-  point0.y = value >> 8;
-  assist.points[0] = point0;
+void assistDidChange(byte length, byte value[]) {
+  Serial.println("Assist Did Change!");
   
-  point point1;
-  value = modeo.getValueForProperty(CURVE_ASSIST_POINT_1);
-  point1.x = value;
-  point1.y = value >> 8;
-  assist.points[1] = point1;
-  
-  point point2;
-  value = modeo.getValueForProperty(CURVE_ASSIST_POINT_2);
-  point2.x = value;
-  point2.y = value >> 8;
-  assist.points[2] = point2;
-  
-  point point3;
-  value = modeo.getValueForProperty(CURVE_ASSIST_POINT_3);
-  point3.x = value;
-  point3.y = value >> 8;
-  assist.points[3] = point3;
+  point bottomLeft;
+  bottomLeft.x = value[0];
+  bottomLeft.y = value[1];
   
   point topRight;
-  value = modeo.getValueForProperty(CURVE_ASSIST_TOP_RIGHT);
-  topRight.x = value;
-  topRight.y = value >> 8;
+  topRight.x = value[2];
+  topRight.y = value[3];
+  
+  point point0;
+  point0.x = value[4];
+  point0.y = value[5];
+  
+  point point1;
+  point1.x = value[6];
+  point1.y = value[7];
+  
+  point point2;
+  point2.x = value[8];
+  point2.y = value[9];
+  
+  point point3;
+  point3.x = value[10];
+  point3.y = value[11];
+  
+  assist.points[0] = point0;
+  assist.points[1] = point1;
+  assist.points[2] = point2;
+  assist.points[3] = point3;
+  
   assist.maxX = topRight.x;
   assist.maxY = topRight.y;
   
   assist.cacheIsValid = false;
-  Serial.print("duration: ");
-  Serial.println(micros() - timestamp);
-  */
 }
 
-void dampingDidChange(unsigned short oldValue, unsigned short newValue) {
-  /*
-  point point0;
-  unsigned short value = modeo.getValueForProperty(CURVE_DAMPING_POINT_0);
-  point0.x = value;
-  point0.y = value >> 8;
-  damping.points[0] = point0;
+void dampingDidChange(byte length, byte value[]) {
+  Serial.println("Damping Did Change!");
   
-  point point1;
-  value = modeo.getValueForProperty(CURVE_DAMPING_POINT_1);
-  point1.x = value;
-  point1.y = value >> 8;
-  damping.points[1] = point1;
-  
-  point point2;
-  value = modeo.getValueForProperty(CURVE_DAMPING_POINT_2);
-  point2.x = value;
-  point2.y = value >> 8;
-  damping.points[2] = point2;
-  
-  point point3;
-  value = modeo.getValueForProperty(CURVE_DAMPING_POINT_3);
-  point3.x = value;
-  point3.y = value >> 8;
-  damping.points[3] = point3;
+  point bottomLeft;
+  bottomLeft.x = value[0];
+  bottomLeft.y = value[1];
   
   point topRight;
-  value = modeo.getValueForProperty(CURVE_DAMPING_TOP_RIGHT);
-  topRight.x = value;
-  topRight.y = value >> 8;
+  topRight.x = value[2];
+  topRight.y = value[3];
+  
+  point point0;
+  point0.x = value[4];
+  point0.y = value[5];
+  
+  point point1;
+  point1.x = value[6];
+  point1.y = value[7];
+  
+  point point2;
+  point2.x = value[8];
+  point2.y = value[9];
+  
+  point point3;
+  point3.x = value[10];
+  point3.y = value[11];
+  
+  damping.points[0] = point0;
+  damping.points[1] = point1;
+  damping.points[2] = point2;
+  damping.points[3] = point3;
+  
   damping.maxX = topRight.x;
   damping.maxY = topRight.y;
   
   damping.cacheIsValid = false;
-  */
 }
 

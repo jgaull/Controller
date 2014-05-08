@@ -50,6 +50,8 @@ struct point {
     byte y;
 };
 
+#define RESOLUTION 10
+
 struct Bezier {
     point points[4];
     point cache[RESOLUTION];

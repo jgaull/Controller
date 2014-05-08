@@ -87,7 +87,7 @@ void setup()
   
   modeo.startup();
   
-  ///*
+  /*
   byte length;
   byte value[2];
   modeo.setUnsignedShortValueForProperty(1000, PROPERTY_FANCY_ASSIST_STATE);

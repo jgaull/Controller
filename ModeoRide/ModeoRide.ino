@@ -26,62 +26,42 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 #include <AltSoftSerial.h>    			//  Serial comms library for communication with RedBear BLE Mini
 #include <avr/pgmspace.h>
 #include <EEPROM.h>
+#include <ModeoBLE.h>
 // END LIBRARIES
 //#include <ble_mini.h>
 
 #include "ModeoRide.h"                  //  Local headers, need to move constants here
 #include "CAN_Definitions.h"
-#include "BLE_Definitions.h"
 
 //VARIABLE DECLARATIONS FOLLOW
 
 PROGMEM prog_uchar RX_IDS[32] = {0x11, 0x14, 0x16, 0x21, 0x70, 0x72, 0x32, 0xAA, 0x9A, 0x12, 0x20, 0x92, 0x6C, 0x30, 0x31, 0x33, 0x61, 0x80, 0x1D, 0x3B, 0x3C, 0x3D, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xF0, 0xF9, 0xFA, 0xFB, 0xFC};
 byte rxData[32];
 bool rxDataIsFresh[32] = {0};
-
 byte Temp_Var_For_Fwd_Twrk_Msg;
 byte Temp_Var_For_Fwd_Twrk_UpperByte;
-
 byte rxLen = 0;
 byte rxBuf[8];
-
 byte txLen = 0;
 byte txBuf[8];
-
-byte vehicleState = VEHICLE_OFF;
-
 long unsigned int rxId;
 long unsigned int txId;
+boolean trqCmdTxFlag = false;
+
+byte vehicleState = VEHICLE_OFF;
 
 byte cyclesSinceLastStroke = 0;
 
 float riderEffort = 0;
 float filteredRiderEffort = 0;
-
 float strainDampingMultiplier = 0.0f;
-
-Bezier assist;
-Bezier regen;
-Bezier damping;
-
-boolean trqCmdTxFlag = false;
-
-//*****TrqMgmt Variables
-
-Sensor sensors[NUM_SENSORS];
-Property properties[NUM_PROPERTIES];
-
-Property propertyPendingSave;
-byte propertyIdentifierForPropertyPendingSave;
-
-Bezier bezierPendingSave;
 
 boolean lastButtonState = false;
 
-AltSoftSerial BLEMini;
-//#define BLEMini Serial
-byte lastAvailable = 0;
+Bezier assist;
+Bezier damping;
 
+ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES, NUM_SENSORS);
 
 //  setup() is called at startup
 void setup()
@@ -96,9 +76,7 @@ void setup()
   
   digitalWrite(BLE_POWER_PIN, HIGH);
 
-  CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx system
-
-  BLEMini.begin(57600);  //  BLE serial.  Lower speeds cause chaos, this speed gets noise due to interrupt issues
+  CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx syste;
   
   constructBLESensors();
   constructBLEProperties();
@@ -107,19 +85,25 @@ void setup()
   
   activateBionx();
   
+  modeo.startup();
+  
   /*
-  Unit test for effort mapping
+  byte length;
+  byte value[2];
+  modeo.setUnsignedShortValueForProperty(1000, PROPERTY_FANCY_ASSIST_STATE);
+  modeo.getValueForProperty(PROPERTY_FANCY_ASSIST_STATE, &length, value);
   
-  for (byte x = 0; x < properties[PROPERTY_MAX_EFFORT].value; x++) {
-    byte y = mapEffortToPower(x);
-    Serial.print(x);
-    Serial.print(",");
-    Serial.print(y);
-    Serial.println("");
+  Serial.print("length = ");
+  Serial.println(length);
+  Serial.print("value = ");
+  Serial.println(modeo.getUnsignedShortValueForProperty(PROPERTY_FANCY_ASSIST_STATE));
+  for (byte i = 0; i < length; i++) {
+    Serial.print("value[");
+    Serial.print(i);
+    Serial.print("] = ");
+    Serial.println(value[i]);
   }
-  */
-  
-  Serial.println("SETUP COMPLETE");
+  //*/
 }
 
 
@@ -132,23 +116,16 @@ void loop()
   
   performCANRX();
   
-  //performBluetoothSend();
-  
-  performBluetoothReceive();
+  modeo.update();
   
   performPeriodicMessageSend(now);
   
   manageTxTimers(now);
   
   manageDataProcessing();
-
-  //performSerialDebugging();
-  
-  //manageActionCounter();
   
   //Serial.print("freeMemory() = ");
   //Serial.println(freeMemory());
-  
 }
 
 void manageVehicleState(bool switchValue) {
@@ -156,10 +133,12 @@ void manageVehicleState(bool switchValue) {
     
     if (vehicleState == VEHICLE_OFF && switchValue == HIGH) {
       activateBionx(); // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
+      modeo.startup();
       Serial.println("ACTIVATE BIONX COMPLETE");
     }
     else if (vehicleState == VEHICLE_ON && switchValue == HIGH) {
       shutdownBionx(); // send the stop cmds to the battery and motor inverter if the switch is off while we were running
+      modeo.shutdown();
       Serial.println("SHUTDOWN BIONX COMPLETE");
     }
     
@@ -168,5 +147,101 @@ void manageVehicleState(bool switchValue) {
   }
   
   digitalWrite(SWITCH_LED_PIN, vehicleState == VEHICLE_ON);
+}
+
+void constructBLESensors() {
+  
+  for (byte i = 0; i < NUM_SENSORS; i++) {
+    modeo.registerSensor(i);
+  }
+}
+
+void constructBLEProperties() {
+  modeo.registerProperty(PROPERTY_SMOOTHING_MIN, 2, true);
+  modeo.registerProperty(PROPERTY_SMOOTHING_MAX, 2, true);
+  modeo.registerProperty(PROPERTY_STROKE_TIMEOUT_CYCLES, 2, true);
+  modeo.registerProperty(PROPERTY_TORQUE_MULTIPLIER, 2, true);
+  modeo.registerProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH, 2, true);
+  modeo.registerProperty(PROPERTY_FANCY_ASSIST_STATE, 2, true);
+  modeo.registerProperty(PROPERTY_NUM_PROPERTIES, 2, true);
+  
+  modeo.registerPropertyWithCallback(PROPERTY_ASSIST, 12, false, &assistDidChange);
+  modeo.registerPropertyWithCallback(PROPERTY_DAMPING, 12, false, &dampingDidChange);
+}
+
+void assistDidChange(byte length, byte value[]) {
+  Serial.println("Assist Did Change!");
+  
+  point bottomLeft;
+  bottomLeft.x = value[0];
+  bottomLeft.y = value[1];
+  
+  point topRight;
+  topRight.x = value[2];
+  topRight.y = value[3];
+  
+  point point0;
+  point0.x = value[4];
+  point0.y = value[5];
+  
+  point point1;
+  point1.x = value[6];
+  point1.y = value[7];
+  
+  point point2;
+  point2.x = value[8];
+  point2.y = value[9];
+  
+  point point3;
+  point3.x = value[10];
+  point3.y = value[11];
+  
+  assist.points[0] = point0;
+  assist.points[1] = point1;
+  assist.points[2] = point2;
+  assist.points[3] = point3;
+  
+  assist.maxX = topRight.x;
+  assist.maxY = topRight.y;
+  
+  assist.cacheIsValid = false;
+}
+
+void dampingDidChange(byte length, byte value[]) {
+  Serial.println("Damping Did Change!");
+  
+  point bottomLeft;
+  bottomLeft.x = value[0];
+  bottomLeft.y = value[1];
+  
+  point topRight;
+  topRight.x = value[2];
+  topRight.y = value[3];
+  
+  point point0;
+  point0.x = value[4];
+  point0.y = value[5];
+  
+  point point1;
+  point1.x = value[6];
+  point1.y = value[7];
+  
+  point point2;
+  point2.x = value[8];
+  point2.y = value[9];
+  
+  point point3;
+  point3.x = value[10];
+  point3.y = value[11];
+  
+  damping.points[0] = point0;
+  damping.points[1] = point1;
+  damping.points[2] = point2;
+  damping.points[3] = point3;
+  
+  damping.maxX = topRight.x;
+  damping.maxY = topRight.y;
+  
+  damping.cacheIsValid = false;
 }
 

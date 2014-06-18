@@ -40,9 +40,9 @@
 #define PROPERTY_RIDER_EFFORT_FILTER_STRENGTH 12
 #define PROPERTY_NUM_PROPERTIES 15
 #define PROPERTY_ASSIST 16
-#define PROPERTY_DAMPING 17
+#define PROPERTY_MAX_DAMPING_SPEED 18
 
-#define NUM_PROPERTIES 9 //Is there a better way to do this?
+#define NUM_PROPERTIES 8 //Is there a better way to do this?
 
 struct point {
     byte x;

@@ -81,29 +81,21 @@ byte mapEffortToPower(float effort) {
 
 float mapSpeedToDamping(byte motorSpeed) {
   
-  float maxMultiplier = 1;
-  motorSpeed = constrain(motorSpeed, 0, damping.maxX);
-  byte mappedSpeed = map(motorSpeed, 0, damping.maxX, 0, 255);
-  
-  point speed1 = { mappedSpeed, 0 };
-  point speed2 = { mappedSpeed, 255 };
-  
-  if ( !damping.cacheIsValid ) {
-    rebuildBezierCache(damping);
+  if (motorSpeed == 0) {
+    return 0;
   }
   
-  for (int i = 0; i < RESOLUTION - 1; i++)
-  {
-    point curveSegment1 = damping.cache[i];
-    point curveSegment2 = damping.cache[i + 1];
-    
-    point result;
-    
-    if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
-      strainDampingMultiplier = (float)result.y / (float)BYTE_MAX;
-      return strainDampingMultiplier;
-    }
-  }
+  unsigned short maxDampingSpeed = modeo.getUnsignedShortValueForProperty(PROPERTY_MAX_DAMPING_SPEED);
+  float damping = (float)motorSpeed / (float)maxDampingSpeed;
+  damping = constrain(damping, 0, 1);
+  
+  Serial.print("maxDampingSpeed = ");
+  Serial.println(maxDampingSpeed);
+  
+  Serial.print("damping = ");
+  Serial.println(damping);
+  
+  return damping;
 }
 
 //Bezier helpers

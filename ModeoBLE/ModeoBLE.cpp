@@ -96,8 +96,6 @@ void ModeoBLE::startup() {
         
         _bleMini.begin(57600);
         _state = STATE_ON;
-        Serial.print("_valuesLength = ");
-        Serial.println(_valuesLength);
         
         Serial.println("ModeoBLE Startup!");
     }
@@ -527,6 +525,7 @@ void ModeoBLE::setProperty() {
         byte numBytes = _properties[index].valueSize;
         _previousWriteRequestLength = headerSize + numBytes;
         
+        /*
         Serial.print("propertyIdentifier = ");
         Serial.println(propertyIdentifier);
         
@@ -538,6 +537,7 @@ void ModeoBLE::setProperty() {
         
         Serial.print("available = ");
         Serial.println(_bleMini.available());
+         */
         
         if (_bleMini.available() >= numBytes) {
             
@@ -552,12 +552,12 @@ void ModeoBLE::setProperty() {
             }
         }
         else {
-            Serial.println("oops 1");
+            //Serial.println("oops 1");
             clearBLEBuffer();
         }
     }
     else {
-        Serial.println("oops 2");
+        //Serial.println("oops 2");
         clearBLEBuffer();
     }
 }

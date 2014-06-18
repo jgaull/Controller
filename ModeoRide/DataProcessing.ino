@@ -88,7 +88,7 @@ float mapSpeedToDamping(byte motorSpeed) {
   unsigned short maxDampingSpeed = modeo.getUnsignedShortValueForProperty(PROPERTY_MAX_DAMPING_SPEED);
   float damping = (float)motorSpeed / (float)maxDampingSpeed;
   damping = constrain(damping, 0, 1);
-  
+  strainDampingMultiplier = damping;
   return damping;
 }
 
@@ -227,6 +227,7 @@ void handleStrainMessageLight(byte newStrain) {
   Serial.print(filteredRiderEffort);
   Serial.print(",");
   Serial.print(strainDampingMultiplier);
+  Serial.print(",");
   Serial.print(torque);
   Serial.print(",");
   Serial.print(newStrain);

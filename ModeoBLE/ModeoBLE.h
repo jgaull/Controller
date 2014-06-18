@@ -11,45 +11,36 @@
 
 #define RESOLUTION 10
 
-struct point {
-    byte x;
-    byte y;
-};
-
-struct Bezier {
-    byte identifier;
-    byte numPoints;
-    point points[4];
-    point cache[RESOLUTION];
-    boolean cacheIsValid;
-    byte maxX;
-    byte maxY;
-};
+typedef void (Callback) (byte length, byte value[]);
 
 class ModeoBLE {
     
     public:
     
-    ModeoBLE(byte numProperties, byte numSensors, byte numBeziers);
+    ModeoBLE(byte numProperties, byte numSensors);
     
     void startup();
     void shutdown();
     void update();
     
-    void registerProperty(byte identifier, bool eepromSave);
-    //void registerPropertyWithCallback(byte identifier, byte readWritePermissions, void (*callback)(unsigned short, unsigned short));
-    void setValueForProperty(unsigned short value, byte propertyId);
-    unsigned short getValueForProperty(byte identifier);
+    void registerProperty(byte identifier, byte size, bool eepromSave);
+    void registerPropertyWithCallback(byte identifier, byte size, bool eepromSave, Callback *callback);
+    
+    void getValueForProperty(byte identifier, byte *length, byte *data);
+    void setValueForProperty(byte identifier, byte data[]);
+    
+    void setUnsignedShortValueForProperty(unsigned short value, byte identifier);
+    unsigned short getUnsignedShortValueForProperty(byte identifier);
     
     void registerSensor(byte identifier);
     void setValueForSensor(unsigned short value, byte identifier);
     unsigned short getValueForSensor(byte identifier);
     
-    void registerBezier(byte identifier);
-    Bezier getBezier(byte identifier);
+    //void registerBezier(byte identifier);
+    //Bezier getBezier(byte identifier);
     
-    void clearEEPROM();
-    void saveValueForProperty(unsigned short value, byte identifier);
+    //void clearEEPROM();
+    //void saveValueForProperty(unsigned short value, byte identifier);
     
     private:
     
@@ -63,13 +54,11 @@ class ModeoBLE {
     void getPropertyValue();
     void writeGetProperty();
     void clearBLEBuffer();
-    void setPropertyValue();
-    void writeProperty();
     void getSensorValue();
-    void addBezier();
-    void writeBezier();
-    void batchSetProperty();
-    void batchWriteProperty();
+    //void addBezier();
+    //void writeBezier();
+    void setProperty();
+    void writeProperty();
     
     void retrieveCalibrations();
     void storeCalibrations();

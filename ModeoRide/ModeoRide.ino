@@ -22,7 +22,7 @@ Mk3 - Full time based CAN message management:  3 tx queues @ configurable rates
 #include <boards.h>
 #include <services.h>                 //  boards.h and services.h are old libraries for the fullsize BLE board
 #include <mcp_can.h>                    //  Awesome library for CAN board, specifically traceivers 
-//#include <MemoryFree.h>
+#include <MemoryFree.h>
 #include <AltSoftSerial.h>    			//  Serial comms library for communication with RedBear BLE Mini
 #include <avr/pgmspace.h>
 #include <EEPROM.h>
@@ -123,8 +123,8 @@ void loop()
   
   manageDataProcessing();
   
-  //Serial.print("freeMemory() = ");
-  //Serial.println(freeMemory());
+  Serial.print("freeMemory() = ");
+  Serial.println(freeMemory());
 }
 
 void manageVehicleState(bool switchValue) {

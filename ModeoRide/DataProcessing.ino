@@ -211,16 +211,8 @@ void handleStrainMessageLight(byte newStrain) {
     filteredRiderEffort = 0;
   }
   
-  byte torque;
-  unsigned short fancyAssistState = modeo.getUnsignedShortValueForProperty(PROPERTY_FANCY_ASSIST_STATE);
-  
-  if (fancyAssistState == STANDARD_ASSIST) {
-    torque = map(filteredRiderEffort, 0, maxEffort, 0, 64);
-  }
-  else if (fancyAssistState == EFFORT_MAPPING) {
-    byte effortMappedToPower = mapEffortToPower(filteredRiderEffort);
-    torque = map(effortMappedToPower, 0, BYTE_MAX, 0, 64);
-  }
+  byte effortMappedToPower = mapEffortToPower(filteredRiderEffort);
+  byte torque = map(effortMappedToPower, 0, BYTE_MAX, 0, 64);
   
   unsigned short torqueMultiplierValue = modeo.getUnsignedShortValueForProperty(PROPERTY_TORQUE_MULTIPLIER);
   

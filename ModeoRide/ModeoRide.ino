@@ -162,7 +162,6 @@ void constructBLEProperties() {
   modeo.registerProperty(PROPERTY_STROKE_TIMEOUT_CYCLES, 2, true);
   modeo.registerProperty(PROPERTY_TORQUE_MULTIPLIER, 2, true);
   modeo.registerProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH, 2, true);
-  modeo.registerProperty(PROPERTY_FANCY_ASSIST_STATE, 2, true);
   modeo.registerProperty(PROPERTY_NUM_PROPERTIES, 2, true);
   
   modeo.registerPropertyWithCallback(PROPERTY_ASSIST, 12, false, &assistDidChange);

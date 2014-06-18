@@ -103,13 +103,6 @@ void setup()
     Serial.println(value[i]);
   }
   //*/
-  
-  for (byte i = 0; i < 25; i++) {
-    //Serial.print(i);
-    //Serial.print(",");
-    //Serial.println(mapSpeedToDamping(i));
-    mapSpeedToDamping(i);
-  }
 }
 
 

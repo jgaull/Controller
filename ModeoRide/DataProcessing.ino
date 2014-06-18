@@ -89,12 +89,6 @@ float mapSpeedToDamping(byte motorSpeed) {
   float damping = (float)motorSpeed / (float)maxDampingSpeed;
   damping = constrain(damping, 0, 1);
   
-  Serial.print("maxDampingSpeed = ");
-  Serial.println(maxDampingSpeed);
-  
-  Serial.print("damping = ");
-  Serial.println(damping);
-  
   return damping;
 }
 

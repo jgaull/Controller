@@ -8,7 +8,6 @@
 //Vehicle State
 #define VEHICLE_OFF 0
 #define VEHICLE_ON 1
-#define VEHICLE_SHUTDOWN_PENDING 2
 
 //Constants for configuration of the strain characterization algorithm
 #define STANDARD_ASSIST 0
@@ -30,9 +29,8 @@
 #define SENSOR_MOTOR_TEMP 5
 #define SENSOR_BATTERY_VOLTAGE 6
 #define SENSOR_FILTERED_RIDER_EFFORT 7
-#define SENSOR_HAS_EVENT 8
 
-#define NUM_SENSORS 9 //Is there a better way to do this?
+#define NUM_SENSORS 8 //Is there a better way to do this?
 
 //Properties
 #define PROPERTY_SMOOTHING_MIN 0
@@ -43,15 +41,8 @@
 #define PROPERTY_NUM_PROPERTIES 15
 #define PROPERTY_ASSIST 16
 #define PROPERTY_MAX_DAMPING_SPEED 18
-#define PROPERTY_EVENT 19
-#define PROPERTY_RIDE_DURATION 20
 
-#define NUM_PROPERTIES 10 //Is there a better way to do this?
-
-//event identifiers
-#define EVENT_NO_EVENT 0
-#define EVENT_START_RIDE 1
-#define EVENT_END_RIDE 2
+#define NUM_PROPERTIES 8 //Is there a better way to do this?
 
 struct point {
     byte x;

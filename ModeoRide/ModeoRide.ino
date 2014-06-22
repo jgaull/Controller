@@ -49,8 +49,6 @@ long unsigned int txId;
 boolean trqCmdTxFlag = false;
 
 byte vehicleState = VEHICLE_OFF;
-long unsigned int startRideTimestamp = 0;
-long unsigned int pendingShutdownTimestamp = 0;
 
 byte cyclesSinceLastStroke = 0;
 
@@ -138,42 +136,20 @@ void manageVehicleState(bool switchValue) {
       Serial.println("ACTIVATE BIONX COMPLETE");
     }
     else if (vehicleState == VEHICLE_ON && switchValue == HIGH) {
-      
-      if (startRideTimestamp > 0) {
-        byte event[1];
-        event[0] = EVENT_END_RIDE;
-        modeo.setValueForProperty(PROPERTY_EVENT, event);
-        modeo.setValueForSensor(1, SENSOR_HAS_EVENT);
-        pendingShutdownTimestamp = millis();
-        vehicleState = VEHICLE_SHUTDOWN_PENDING;
-        Serial.println("Shutdown Pending");
-      }
-      else {
-        Serial.println("Immediate shutdown!");
-        completeShutdown();
-      }
+      shutdownBionx(); // send the stop cmds to the battery and motor inverter if the switch is off while we were running
+      modeo.shutdown();
+      Serial.println("SHUTDOWN BIONX COMPLETE");
     }
     
     lastButtonState = switchValue;
     delay(1); //debounce
   }
   
-  if (pendingShutdownTimestamp > 0 && millis() - pendingShutdownTimestamp > 10000) {
-    completeShutdown();
-  }
-  
   digitalWrite(SWITCH_LED_PIN, vehicleState == VEHICLE_ON);
 }
 
-void completeShutdown() {
-  pendingShutdownTimestamp = 0;
-  startRideTimestamp = 0;
-  shutdownBionx(); // send the stop cmds to the battery and motor inverter if the switch is off while we were running
-  modeo.shutdown();
-  Serial.println("SHUTDOWN BIONX COMPLETE");
-}
-
 void constructBLESensors() {
+  
   for (byte i = 0; i < NUM_SENSORS; i++) {
     modeo.registerSensor(i);
   }
@@ -187,22 +163,9 @@ void constructBLEProperties() {
   modeo.registerProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH, 2, true);
   modeo.registerProperty(PROPERTY_NUM_PROPERTIES, 2, true);
   modeo.registerProperty(PROPERTY_MAX_DAMPING_SPEED, 2, true);
-  modeo.registerProperty(PROPERTY_RIDE_DURATION, 2, false);
   
   modeo.registerPropertyWithCallback(PROPERTY_ASSIST, 12, false, &assistDidChange);
   //modeo.registerPropertyWithCallback(PROPERTY_DAMPING, 12, false, &dampingDidChange);
-  modeo.registerPropertyWithCallback(PROPERTY_EVENT, 1, false, &eventDidChange);
-}
-
-void eventDidChange(byte length, byte value[]) {
-  if (modeo.getByteValueForProperty(PROPERTY_EVENT) == EVENT_NO_EVENT) {
-    if (vehicleState == VEHICLE_SHUTDOWN_PENDING) {
-      completeShutdown();
-    }
-    
-    Serial.println("No more event!");
-    modeo.setValueForSensor(0, SENSOR_HAS_EVENT);
-  }
 }
 
 void assistDidChange(byte length, byte value[]) {

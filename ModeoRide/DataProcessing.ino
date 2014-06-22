@@ -4,7 +4,6 @@ void manageDataProcessing() {
     //handleStrainMessage(rxData[DAT_RID_TRQ]);
     handleStrainMessageLight(rxData[DAT_RID_TRQ]);
     rxDataIsFresh[DAT_RID_TRQ] = false;
-    handleRideStart();
   }
   
   if (rxDataIsFresh[DAT_MTR_TMP]) {
@@ -35,40 +34,12 @@ void manageDataProcessing() {
       
       mapSpeedToDamping(rxData[DAT_MTR_SPD]);
       modeo.setValueForSensor(mappedSpeed, SENSOR_SPEED);
-      handleRideStart();
+      
     }
     
     rxDataIsFresh[DAT_MTR_SPD] = false;
   }
-  
-  if (startRideTimestamp > 0) {
-    unsigned short duration = millis() - startRideTimestamp;
-    modeo.setUnsignedShortValueForProperty(duration, PROPERTY_RIDE_DURATION);
-  }
  
-}
-
-void handleRideStart() {
-  /*
-  Serial.print("startRideTimestamp = ");
-  Serial.println(startRideTimestamp);
-  
-  Serial.print("filteredRiderEffort = ");
-  Serial.println(filteredRiderEffort);
-  
-  Serial.print("rxData[DAT_MTR_SPD] = ");
-  Serial.println(rxData[DAT_MTR_SPD]);
-  //*/
-  
-  if (startRideTimestamp == 0 && filteredRiderEffort > 5 && rxData[DAT_MTR_SPD] > 4) {
-    Serial.println("Started Ride!");
-    startRideTimestamp = millis();
-    
-    byte event[1];
-    event[0] = EVENT_START_RIDE;
-    modeo.setValueForProperty(PROPERTY_EVENT, event);
-    modeo.setValueForSensor(1, SENSOR_HAS_EVENT);
-  }
 }
 
 //Bezier intersection functions

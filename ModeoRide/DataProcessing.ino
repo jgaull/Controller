@@ -49,6 +49,17 @@ void manageDataProcessing() {
 }
 
 void handleRideStart() {
+  /*
+  Serial.print("startRideTimestamp = ");
+  Serial.println(startRideTimestamp);
+  
+  Serial.print("filteredRiderEffort = ");
+  Serial.println(filteredRiderEffort);
+  
+  Serial.print("rxData[DAT_MTR_SPD] = ");
+  Serial.println(rxData[DAT_MTR_SPD]);
+  //*/
+  
   if (startRideTimestamp == 0 && filteredRiderEffort > 5 && rxData[DAT_MTR_SPD] > 4) {
     Serial.println("Started Ride!");
     startRideTimestamp = millis();

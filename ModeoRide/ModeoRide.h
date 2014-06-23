@@ -38,12 +38,11 @@
 #define PROPERTY_STROKE_TIMEOUT_CYCLES 2
 #define PROPERTY_TORQUE_MULTIPLIER 4
 #define PROPERTY_RIDER_EFFORT_FILTER_STRENGTH 12
-#define PROPERTY_FANCY_ASSIST_STATE 14
 #define PROPERTY_NUM_PROPERTIES 15
 #define PROPERTY_ASSIST 16
-#define PROPERTY_DAMPING 17
+#define PROPERTY_MAX_DAMPING_SPEED 18
 
-#define NUM_PROPERTIES 9 //Is there a better way to do this?
+#define NUM_PROPERTIES 8 //Is there a better way to do this?
 
 struct point {
     byte x;

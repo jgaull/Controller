@@ -81,29 +81,15 @@ byte mapEffortToPower(float effort) {
 
 float mapSpeedToDamping(byte motorSpeed) {
   
-  float maxMultiplier = 1;
-  motorSpeed = constrain(motorSpeed, 0, damping.maxX);
-  byte mappedSpeed = map(motorSpeed, 0, damping.maxX, 0, 255);
-  
-  point speed1 = { mappedSpeed, 0 };
-  point speed2 = { mappedSpeed, 255 };
-  
-  if ( !damping.cacheIsValid ) {
-    rebuildBezierCache(damping);
+  if (motorSpeed == 0) {
+    return 0;
   }
   
-  for (int i = 0; i < RESOLUTION - 1; i++)
-  {
-    point curveSegment1 = damping.cache[i];
-    point curveSegment2 = damping.cache[i + 1];
-    
-    point result;
-    
-    if (intersectionOfLineFrom(curveSegment1, curveSegment2, speed1, speed2, result)) {
-      strainDampingMultiplier = (float)result.y / (float)BYTE_MAX;
-      return strainDampingMultiplier;
-    }
-  }
+  unsigned short maxDampingSpeed = modeo.getUnsignedShortValueForProperty(PROPERTY_MAX_DAMPING_SPEED);
+  float damping = (float)motorSpeed / (float)maxDampingSpeed;
+  damping = constrain(damping, 0, 1);
+  strainDampingMultiplier = damping;
+  return damping;
 }
 
 //Bezier helpers
@@ -211,16 +197,8 @@ void handleStrainMessageLight(byte newStrain) {
     filteredRiderEffort = 0;
   }
   
-  byte torque;
-  unsigned short fancyAssistState = modeo.getUnsignedShortValueForProperty(PROPERTY_FANCY_ASSIST_STATE);
-  
-  if (fancyAssistState == STANDARD_ASSIST) {
-    torque = map(filteredRiderEffort, 0, maxEffort, 0, 64);
-  }
-  else if (fancyAssistState == EFFORT_MAPPING) {
-    byte effortMappedToPower = mapEffortToPower(filteredRiderEffort);
-    torque = map(effortMappedToPower, 0, BYTE_MAX, 0, 64);
-  }
+  byte effortMappedToPower = mapEffortToPower(filteredRiderEffort);
+  byte torque = map(effortMappedToPower, 0, BYTE_MAX, 0, 64);
   
   unsigned short torqueMultiplierValue = modeo.getUnsignedShortValueForProperty(PROPERTY_TORQUE_MULTIPLIER);
   
@@ -249,6 +227,7 @@ void handleStrainMessageLight(byte newStrain) {
   Serial.print(filteredRiderEffort);
   Serial.print(",");
   Serial.print(strainDampingMultiplier);
+  Serial.print(",");
   Serial.print(torque);
   Serial.print(",");
   Serial.print(newStrain);

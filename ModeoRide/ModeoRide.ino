@@ -59,7 +59,6 @@ float strainDampingMultiplier = 0.0f;
 boolean lastButtonState = false;
 
 Bezier assist;
-Bezier damping;
 
 ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES, NUM_SENSORS);
 
@@ -162,11 +161,11 @@ void constructBLEProperties() {
   modeo.registerProperty(PROPERTY_STROKE_TIMEOUT_CYCLES, 2, true);
   modeo.registerProperty(PROPERTY_TORQUE_MULTIPLIER, 2, true);
   modeo.registerProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH, 2, true);
-  modeo.registerProperty(PROPERTY_FANCY_ASSIST_STATE, 2, true);
   modeo.registerProperty(PROPERTY_NUM_PROPERTIES, 2, true);
+  modeo.registerProperty(PROPERTY_MAX_DAMPING_SPEED, 2, true);
   
   modeo.registerPropertyWithCallback(PROPERTY_ASSIST, 12, false, &assistDidChange);
-  modeo.registerPropertyWithCallback(PROPERTY_DAMPING, 12, false, &dampingDidChange);
+  //modeo.registerPropertyWithCallback(PROPERTY_DAMPING, 12, false, &dampingDidChange);
 }
 
 void assistDidChange(byte length, byte value[]) {
@@ -207,6 +206,7 @@ void assistDidChange(byte length, byte value[]) {
   assist.cacheIsValid = false;
 }
 
+/*
 void dampingDidChange(byte length, byte value[]) {
   Serial.println("Damping Did Change!");
   
@@ -243,5 +243,5 @@ void dampingDidChange(byte length, byte value[]) {
   damping.maxY = topRight.y;
   
   damping.cacheIsValid = false;
-}
+} */
 

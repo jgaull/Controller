@@ -40,12 +40,12 @@ byte rxData[32];
 bool rxDataIsFresh[32] = {0};
 byte Temp_Var_For_Fwd_Twrk_Msg;
 byte Temp_Var_For_Fwd_Twrk_UpperByte;
-byte rxLen = 0;
-byte rxBuf[8];
-byte txLen = 0;
-byte txBuf[8];
-long unsigned int rxId;
-long unsigned int txId;
+//byte rxLen = 0;
+//byte rxBuf[8];
+//byte txLen = 0;
+//byte txBuf[8];
+//long unsigned int rxId;
+//long unsigned int txId;
 boolean trqCmdTxFlag = false;
 
 byte vehicleState = VEHICLE_OFF;
@@ -187,11 +187,10 @@ void constructBLEProperties() {
   modeo.registerProperty(PROPERTY_RIDER_EFFORT_FILTER_STRENGTH, 2, true);
   modeo.registerProperty(PROPERTY_NUM_PROPERTIES, 2, true);
   modeo.registerProperty(PROPERTY_MAX_DAMPING_SPEED, 2, true);
-  modeo.registerProperty(PROPERTY_RIDE_DURATION, 2, false);
   
   modeo.registerPropertyWithCallback(PROPERTY_ASSIST, 12, false, &assistDidChange);
   //modeo.registerPropertyWithCallback(PROPERTY_DAMPING, 12, false, &dampingDidChange);
-  modeo.registerPropertyWithCallback(PROPERTY_EVENT, 1, false, &eventDidChange);
+  modeo.registerPropertyWithCallback(PROPERTY_EVENT, 17, false, &eventDidChange);
 }
 
 void eventDidChange(byte length, byte value[]) {

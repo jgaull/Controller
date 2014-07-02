@@ -40,12 +40,6 @@ void manageDataProcessing() {
     
     rxDataIsFresh[DAT_MTR_SPD] = false;
   }
-  
-  if (startRideTimestamp > 0) {
-    unsigned short duration = millis() - startRideTimestamp;
-    modeo.setUnsignedShortValueForProperty(duration, PROPERTY_RIDE_DURATION);
-  }
- 
 }
 
 void handleRideStart() {
@@ -64,8 +58,40 @@ void handleRideStart() {
     Serial.println("Started Ride!");
     startRideTimestamp = millis();
     
-    byte event[1];
+    byte headerSize = 1;
+    byte datemSize = 2;
+    byte totalSize = headerSize + (NUM_SENSORS - 1) * datemSize;
+    
+    byte event[17];
     event[0] = EVENT_START_RIDE;
+    
+    for (byte i = 0; i < NUM_SENSORS; i++) {
+      
+      if (i != SENSOR_HAS_EVENT) {
+        unsigned short sensorValue = modeo.getValueForSensor(i);
+        byte scaledValue = map(sensorValue, 0, UINT16_MAX, 0, BYTE_MAX);
+        byte dataIndex = headerSize + datemSize * i;
+        
+        event[dataIndex] = i;
+        event[dataIndex + 1] = scaledValue;
+        /*
+        Serial.print("sensorValue[");
+        Serial.print(i);
+        Serial.print("] = ");
+        Serial.println(sensorValue);
+        */
+      }
+    }
+    
+    /*
+    for (byte i = 0; i < totalSize; i++) {
+      Serial.print("event[");
+      Serial.print(i);
+      Serial.print("] = ");
+      Serial.println(event[i]);
+    }
+    */
+    
     modeo.setValueForProperty(PROPERTY_EVENT, event);
     modeo.setValueForSensor(1, SENSOR_HAS_EVENT);
   }

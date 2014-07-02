@@ -7,6 +7,8 @@ void activateBionx(){
   
   //delay(500);
   
+  byte txBuf[8];
+  
   txBuf[1]= 0x00;
   txBuf[1]= 0x20;
   txBuf[2]= 0x00;
@@ -105,6 +107,7 @@ void activateBionx(){
 
 void shutdownBionx() {
   
+  byte txBuf[8];
   //JIC code:  SEND TWO zero-speed commands, SEND 0A command, SET DIRECTION FORWARD
   txBuf[0]= 0x00;
   txBuf[1]= CMD_MTR_TRQ_ID;

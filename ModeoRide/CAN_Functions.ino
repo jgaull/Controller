@@ -2,9 +2,12 @@
 void performCANRX() {
   // READ A MESSAGE EVERY EXECUTION CYCLE, IF AVAILABLE
   if (!digitalRead(CAN_READY_PIN)) {                       // If pin 2 is low, read receive buffer
-
+    
+    byte rxBuf[4];
+    byte rxLen = 0;
+    
     CAN.readMsgBuf(&rxLen, rxBuf);              // Read data: len = data length, buf = data byte(s)
-    rxId = CAN.getCanId();                    // Get message ID
+    //rxId = CAN.getCanId();                    // Get message ID
 
     if (rxLen == 4)
     {

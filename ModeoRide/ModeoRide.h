@@ -44,9 +44,8 @@
 #define PROPERTY_ASSIST 16
 #define PROPERTY_MAX_DAMPING_SPEED 18
 #define PROPERTY_EVENT 19
-#define PROPERTY_RIDE_DURATION 20
 
-#define NUM_PROPERTIES 10 //Is there a better way to do this?
+#define NUM_PROPERTIES 9 //Is there a better way to do this?
 
 //event identifiers
 #define EVENT_NO_EVENT 0

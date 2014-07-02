@@ -57,13 +57,17 @@ void handleRideStart() {
   if (startRideTimestamp == 0 && filteredRiderEffort > 5 && rxData[DAT_MTR_SPD] > 4) {
     Serial.println("Started Ride!");
     startRideTimestamp = millis();
-    
-    byte headerSize = 1;
+    createEvent(EVENT_START_RIDE);
+  }
+}
+
+void createEvent(byte type) {
+  byte headerSize = 1;
     byte datemSize = 2;
     byte totalSize = headerSize + (NUM_SENSORS - 1) * datemSize;
     
     byte event[17];
-    event[0] = EVENT_START_RIDE;
+    event[0] = type;
     
     for (byte i = 0; i < NUM_SENSORS; i++) {
       
@@ -94,7 +98,6 @@ void handleRideStart() {
     
     modeo.setValueForProperty(PROPERTY_EVENT, event);
     modeo.setValueForSensor(1, SENSOR_HAS_EVENT);
-  }
 }
 
 //Bezier intersection functions

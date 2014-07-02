@@ -140,10 +140,7 @@ void manageVehicleState(bool switchValue) {
     else if (vehicleState == VEHICLE_ON && switchValue == HIGH) {
       
       if (startRideTimestamp > 0) {
-        byte event[1];
-        event[0] = EVENT_END_RIDE;
-        modeo.setValueForProperty(PROPERTY_EVENT, event);
-        modeo.setValueForSensor(1, SENSOR_HAS_EVENT);
+        createEvent(EVENT_END_RIDE);
         pendingShutdownTimestamp = millis();
         vehicleState = VEHICLE_SHUTDOWN_PENDING;
         Serial.println("Shutdown Pending");

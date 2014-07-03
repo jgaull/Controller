@@ -135,6 +135,7 @@ void manageVehicleState(bool switchValue) {
     if (vehicleState == VEHICLE_OFF && switchValue == HIGH) {
       activateBionx(); // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
       modeo.startup();
+      digitalWrite(BLE_POWER_PIN, HIGH);
       Serial.println("ACTIVATE BIONX COMPLETE");
     }
     else if (vehicleState == VEHICLE_ON && switchValue == HIGH) {
@@ -167,6 +168,7 @@ void completeShutdown() {
   startRideTimestamp = 0;
   shutdownBionx(); // send the stop cmds to the battery and motor inverter if the switch is off while we were running
   modeo.shutdown();
+  digitalWrite(BLE_POWER_PIN, LOW);
   Serial.println("SHUTDOWN BIONX COMPLETE");
 }
 

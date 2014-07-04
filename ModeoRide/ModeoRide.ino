@@ -62,7 +62,7 @@ boolean lastButtonState = false;
 
 Bezier assist;
 
-ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES, NUM_SENSORS);
+ModeoBLE modeo = ModeoBLE();
 
 //  setup() is called at startup
 void setup()
@@ -79,14 +79,15 @@ void setup()
 
   CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx syste;
   
-  constructBLESensors();
-  constructBLEProperties();
+  //constructBLESensors();
+  //constructBLEProperties();
   
   lastButtonState = digitalRead(ON_OFF_SWITCH_PIN);
   
   activateBionx();
   
   modeo.startup();
+      digitalWrite(BLE_POWER_PIN, HIGH);
   
   /*
   byte length;
@@ -111,18 +112,12 @@ void setup()
 // MAIN LOOP
 void loop()
 {
-  unsigned long now = micros();
-  
-  manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
-  
-  performCANRX();
-  
   modeo.update();
-  
+  unsigned long now = micros();
+  manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
+  performCANRX();
   performPeriodicMessageSend(now);
-  
   manageTxTimers(now);
-  
   manageDataProcessing();
   
   //Serial.print("freeMemory() = ");
@@ -172,6 +167,7 @@ void completeShutdown() {
   Serial.println("SHUTDOWN BIONX COMPLETE");
 }
 
+/*
 void constructBLESensors() {
   for (byte i = 0; i < NUM_SENSORS; i++) {
     modeo.registerSensor(i);
@@ -191,6 +187,7 @@ void constructBLEProperties() {
   //modeo.registerPropertyWithCallback(PROPERTY_DAMPING, 12, false, &dampingDidChange);
   modeo.registerPropertyWithCallback(PROPERTY_EVENT, 17, false, &eventDidChange);
 }
+*/
 
 void eventDidChange(byte length, byte value[]) {
   if (modeo.getByteValueForProperty(PROPERTY_EVENT) == EVENT_NO_EVENT) {

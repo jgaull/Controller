@@ -86,8 +86,7 @@ void setup()
   
   activateBionx();
   
-  modeo.startup();
-      digitalWrite(BLE_POWER_PIN, HIGH);
+  modeo.startup(&propertyDidChange);
   
   /*
   byte length;
@@ -129,7 +128,7 @@ void manageVehicleState(bool switchValue) {
     
     if (vehicleState == VEHICLE_OFF && switchValue == HIGH) {
       activateBionx(); // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
-      modeo.startup();
+      modeo.startup(&propertyDidChange);
       digitalWrite(BLE_POWER_PIN, HIGH);
       Serial.println("ACTIVATE BIONX COMPLETE");
     }
@@ -188,6 +187,21 @@ void constructBLEProperties() {
   modeo.registerPropertyWithCallback(PROPERTY_EVENT, 17, false, &eventDidChange);
 }
 */
+
+void propertyDidChange(byte identifier, byte length, byte value[]) {
+  switch(identifier) {
+    case PROPERTY_ASSIST:
+      assistDidChange(length, value);
+      break;
+    
+    case PROPERTY_EVENT:
+      eventDidChange(length, value);
+      break;
+      
+    default:
+      Serial.print("wtf?");
+  }
+}
 
 void eventDidChange(byte length, byte value[]) {
   if (modeo.getByteValueForProperty(PROPERTY_EVENT) == EVENT_NO_EVENT) {

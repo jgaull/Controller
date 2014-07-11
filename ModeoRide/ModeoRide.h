@@ -19,7 +19,7 @@
 #define CURVE_TYPE_ASSIST 0
 #define CURVE_TYPE_DAMPING 1
 
-#define NUM_BEZIERS 2
+//#define NUM_BEZIERS 2
 
 //Sensors
 #define SENSOR_RIDER_EFFORT 0
@@ -40,12 +40,11 @@
 #define PROPERTY_STROKE_TIMEOUT_CYCLES 2
 #define PROPERTY_TORQUE_MULTIPLIER 4
 #define PROPERTY_RIDER_EFFORT_FILTER_STRENGTH 12
-#define PROPERTY_NUM_PROPERTIES 15
 #define PROPERTY_ASSIST 16
 #define PROPERTY_MAX_DAMPING_SPEED 18
 #define PROPERTY_EVENT 19
 
-#define NUM_PROPERTIES 9 //Is there a better way to do this?
+//#define NUM_PROPERTIES 9 //Is there a better way to do this?
 
 //event identifiers
 #define EVENT_NO_EVENT 0
@@ -57,7 +56,7 @@ struct point {
     byte y;
 };
 
-#define RESOLUTION 10
+#define RESOLUTION 4
 
 struct Bezier {
     point points[4];

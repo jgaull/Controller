@@ -149,6 +149,10 @@ void manageVehicleState(bool switchValue) {
     delay(1); //debounce
   }
   
+  if (vehicleState == VEHICLE_SHUTDOWN_PENDING && millis() - pendingShutdownTimestamp > 10000) {
+    completeShutdown();
+  }
+  
   digitalWrite(SWITCH_LED_PIN, vehicleState == VEHICLE_ON);
 }
 

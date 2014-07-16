@@ -4,7 +4,6 @@ void manageDataProcessing() {
     //handleStrainMessage(rxData[DAT_RID_TRQ]);
     handleStrainMessageLight(rxData[DAT_RID_TRQ]);
     rxDataIsFresh[DAT_RID_TRQ] = false;
-    handleRideStart();
   }
   
   if (rxDataIsFresh[DAT_MTR_TMP]) {
@@ -35,11 +34,13 @@ void manageDataProcessing() {
       
       mapSpeedToDamping(rxData[DAT_MTR_SPD]);
       modeo.setValueForSensor(mappedSpeed, SENSOR_SPEED);
-      handleRideStart();
+      
     }
     
     rxDataIsFresh[DAT_MTR_SPD] = false;
   }
+  
+  handleRideStart();
 }
 
 void handleRideStart() {

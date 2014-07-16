@@ -49,8 +49,8 @@ byte Temp_Var_For_Fwd_Twrk_UpperByte;
 boolean trqCmdTxFlag = false;
 
 byte vehicleState = VEHICLE_OFF;
-long unsigned int startRideTimestamp = 0;
-long unsigned int pendingShutdownTimestamp = 0;
+unsigned long startRideTimestamp = 0;
+unsigned long pendingShutdownTimestamp = 0;
 
 byte cyclesSinceLastStroke = 0;
 
@@ -133,7 +133,6 @@ void manageVehicleState(bool switchValue) {
       Serial.println("ACTIVATE BIONX COMPLETE");
     }
     else if (vehicleState == VEHICLE_ON && switchValue == HIGH) {
-      
       if (startRideTimestamp > 0) {
         createEvent(EVENT_END_RIDE);
         pendingShutdownTimestamp = millis();
@@ -150,10 +149,6 @@ void manageVehicleState(bool switchValue) {
     delay(1); //debounce
   }
   
-  if (pendingShutdownTimestamp > 0 && millis() - pendingShutdownTimestamp > 10000) {
-    completeShutdown();
-  }
-  
   digitalWrite(SWITCH_LED_PIN, vehicleState == VEHICLE_ON);
 }
 
@@ -168,6 +163,7 @@ void completeShutdown() {
 
 /*
 void constructBLESensors() {
+  
   for (byte i = 0; i < NUM_SENSORS; i++) {
     modeo.registerSensor(i);
   }

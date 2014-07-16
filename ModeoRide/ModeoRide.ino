@@ -40,15 +40,17 @@ byte rxData[32];
 bool rxDataIsFresh[32] = {0};
 byte Temp_Var_For_Fwd_Twrk_Msg;
 byte Temp_Var_For_Fwd_Twrk_UpperByte;
-byte rxLen = 0;
-byte rxBuf[8];
-byte txLen = 0;
-byte txBuf[8];
-long unsigned int rxId;
-long unsigned int txId;
+//byte rxLen = 0;
+//byte rxBuf[8];
+//byte txLen = 0;
+//byte txBuf[8];
+//long unsigned int rxId;
+//long unsigned int txId;
 boolean trqCmdTxFlag = false;
 
 byte vehicleState = VEHICLE_OFF;
+unsigned long startRideTimestamp = 0;
+unsigned long pendingShutdownTimestamp = 0;
 
 byte cyclesSinceLastStroke = 0;
 
@@ -60,7 +62,7 @@ boolean lastButtonState = false;
 
 Bezier assist;
 
-ModeoBLE modeo = ModeoBLE(NUM_PROPERTIES, NUM_SENSORS);
+ModeoBLE modeo = ModeoBLE();
 
 //  setup() is called at startup
 void setup()
@@ -77,14 +79,14 @@ void setup()
 
   CAN.begin(CAN_125KBPS);   //125kbps CAN is default for the Bionx syste;
   
-  constructBLESensors();
-  constructBLEProperties();
+  //constructBLESensors();
+  //constructBLEProperties();
   
   lastButtonState = digitalRead(ON_OFF_SWITCH_PIN);
   
   activateBionx();
   
-  modeo.startup();
+  modeo.startup(&propertyDidChange);
   
   /*
   byte length;
@@ -109,18 +111,12 @@ void setup()
 // MAIN LOOP
 void loop()
 {
-  unsigned long now = micros();
-  
-  manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
-  
-  performCANRX();
-  
   modeo.update();
-  
+  unsigned long now = micros();
+  manageVehicleState(digitalRead(ON_OFF_SWITCH_PIN));  // Get the state of the switch every cycle. This function can be slowed down if it turns out to take serious time
+  performCANRX();
   performPeriodicMessageSend(now);
-  
   manageTxTimers(now);
-  
   manageDataProcessing();
   
   //Serial.print("freeMemory() = ");
@@ -132,13 +128,21 @@ void manageVehicleState(bool switchValue) {
     
     if (vehicleState == VEHICLE_OFF && switchValue == HIGH) {
       activateBionx(); // Fire the relay for a few seconds if we are off (ready to start) and the switch is ON
-      modeo.startup();
+      modeo.startup(&propertyDidChange);
+      digitalWrite(BLE_POWER_PIN, HIGH);
       Serial.println("ACTIVATE BIONX COMPLETE");
     }
     else if (vehicleState == VEHICLE_ON && switchValue == HIGH) {
-      shutdownBionx(); // send the stop cmds to the battery and motor inverter if the switch is off while we were running
-      modeo.shutdown();
-      Serial.println("SHUTDOWN BIONX COMPLETE");
+      if (startRideTimestamp > 0) {
+        createEvent(EVENT_END_RIDE);
+        pendingShutdownTimestamp = millis();
+        vehicleState = VEHICLE_SHUTDOWN_PENDING;
+        Serial.println("Shutdown Pending");
+      }
+      else {
+        Serial.println("Immediate shutdown!");
+        completeShutdown();
+      }
     }
     
     lastButtonState = switchValue;
@@ -148,6 +152,16 @@ void manageVehicleState(bool switchValue) {
   digitalWrite(SWITCH_LED_PIN, vehicleState == VEHICLE_ON);
 }
 
+void completeShutdown() {
+  pendingShutdownTimestamp = 0;
+  startRideTimestamp = 0;
+  shutdownBionx(); // send the stop cmds to the battery and motor inverter if the switch is off while we were running
+  modeo.shutdown();
+  digitalWrite(BLE_POWER_PIN, LOW);
+  Serial.println("SHUTDOWN BIONX COMPLETE");
+}
+
+/*
 void constructBLESensors() {
   
   for (byte i = 0; i < NUM_SENSORS; i++) {
@@ -166,6 +180,34 @@ void constructBLEProperties() {
   
   modeo.registerPropertyWithCallback(PROPERTY_ASSIST, 12, false, &assistDidChange);
   //modeo.registerPropertyWithCallback(PROPERTY_DAMPING, 12, false, &dampingDidChange);
+  modeo.registerPropertyWithCallback(PROPERTY_EVENT, 17, false, &eventDidChange);
+}
+*/
+
+void propertyDidChange(byte identifier, byte length, byte value[]) {
+  switch(identifier) {
+    case PROPERTY_ASSIST:
+      assistDidChange(length, value);
+      break;
+    
+    case PROPERTY_EVENT:
+      eventDidChange(length, value);
+      break;
+      
+    default:
+      Serial.print("wtf?");
+  }
+}
+
+void eventDidChange(byte length, byte value[]) {
+  if (modeo.getByteValueForProperty(PROPERTY_EVENT) == EVENT_NO_EVENT) {
+    if (vehicleState == VEHICLE_SHUTDOWN_PENDING) {
+      completeShutdown();
+    }
+    
+    Serial.println("No more event!");
+    modeo.setValueForSensor(0, SENSOR_HAS_EVENT);
+  }
 }
 
 void assistDidChange(byte length, byte value[]) {

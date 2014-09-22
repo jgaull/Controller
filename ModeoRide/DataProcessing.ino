@@ -15,9 +15,23 @@ void manageDataProcessing() {
   
   if (rxDataIsFresh[DAT_BAT_VBAT]) {
     
-    unsigned short mappedBatteryVoltage = constrain(rxData[DAT_BAT_VBAT], 170, 217);
-    mappedBatteryVoltage = map(mappedBatteryVoltage, 170, 217, 0, UINT16_MAX);
+    unsigned short mappedBatteryVoltage = rxData[DAT_BAT_VBAT];
     
+    if ( batteryPercentage == 0 ) {
+      batteryPercentage = mappedBatteryVoltage;
+    }
+    
+    batteryPercentage = smooth(rxData[DAT_BAT_VBAT], batteryPercentage, 0.999f);
+    
+    mappedBatteryVoltage = round(batteryPercentage);
+    mappedBatteryVoltage = constrain(batteryPercentage, 170, 217);
+    mappedBatteryVoltage = map(batteryPercentage, 170, 217, 0, UINT16_MAX);
+    modeo.setValueForSensor(mappedBatteryVoltage, SENSOR_BATTERY_PERCENTAGE);
+    
+    mappedBatteryVoltage = constrain(rxData[DAT_BAT_VBAT], 0, 255);
+    mappedBatteryVoltage = map(mappedBatteryVoltage, 0, 255, 0, UINT16_MAX);
+    
+    mappedBatteryVoltage = rxData[DAT_BAT_VBAT];
     if (mappedBatteryVoltage != modeo.getValueForSensor(SENSOR_BATTERY_VOLTAGE)) {
       
       modeo.setValueForSensor(mappedBatteryVoltage, SENSOR_BATTERY_VOLTAGE);

@@ -31,6 +31,7 @@
 #define SENSOR_BATTERY_VOLTAGE 6
 #define SENSOR_FILTERED_RIDER_EFFORT 7
 #define SENSOR_HAS_EVENT 8
+#define SENSOR_BATTERY_PERCENTAGE 9
 
 #define NUM_SENSORS 9 //Is there a better way to do this?
 

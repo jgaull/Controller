@@ -58,6 +58,8 @@ float riderEffort = 0;
 float filteredRiderEffort = 0;
 float strainDampingMultiplier = 0.0f;
 
+float batteryPercentage = 0;
+
 boolean lastButtonState = false;
 
 Bezier assist;
